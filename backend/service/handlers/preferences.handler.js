@@ -1,0 +1,230 @@
+const CreatorPreference = require('../../model/CreatorPreference');
+const { fetchFilteredMedia } = require('../mediaUtils');
+
+// ==================== PREFERENCES HANDLER ====================
+// Handles: set/get/reset creator automation preferences via chat
+// Examples: "only automate recent video", "reply to top 100 comments", "auto-reply for 24 hours"
+
+module.exports = {
+    name: 'preferences',
+    intents: [
+        'set_content_target',      // "only automate my recent video"
+        'set_time_limit',          // "only for 24 hours"
+        'set_comment_limit',       // "only reply to 100 comments"
+        'get_preferences',         // "show my preferences"
+        'reset_preferences'        // "reset all preferences"
+    ],
+
+    async execute(intent, params, context) {
+        const { userId, token } = context;
+
+        try {
+            // ==================== SET CONTENT TARGET ====================
+            if (intent === 'set_content_target') {
+                const rawTarget = (params.target || 'all').toLowerCase();
+                const allowedTargets = ['all', 'recent', 'specific', 'first', 'previous'];
+                const target = allowedTargets.includes(rawTarget) ? rawTarget : 'all'; // Fallback
+
+                const maxPosts = params.maxPosts || 0;
+                const postTitle = params.postTitle || params.title || '';
+                
+                let mediaType = 'any';
+                if (params.mediaType) {
+                    const upperFormat = params.mediaType.toUpperCase();
+                    if (['VIDEO', 'IMAGE', 'CAROUSEL_ALBUM'].includes(upperFormat)) mediaType = upperFormat;
+                    // Auto-map user lingo:
+                    if (upperFormat === 'REEL' || upperFormat === 'REELS') mediaType = 'VIDEO';
+                    if (upperFormat === 'POST' || upperFormat === 'POSTS') mediaType = 'IMAGE';
+                    if (upperFormat === 'CAROUSEL') mediaType = 'CAROUSEL_ALBUM';
+                }
+
+                const update = {
+                    'contentTarget.type': target,
+                    'contentTarget.maxPosts': maxPosts,
+                    'contentTarget.mediaType': mediaType
+                };
+
+                if (target === 'specific' && postTitle) {
+                    update['contentTarget.specificPostTitle'] = postTitle;
+                }
+                if (params.postId) {
+                    update['contentTarget.specificPostId'] = params.postId;
+                }
+
+                await CreatorPreference.findOneAndUpdate(
+                    { userId },
+                    { userId, ...update },
+                    { upsert: true }
+                );
+
+                const targetLabels = {
+                    'all': '📋 All posts/videos',
+                    'recent': '🆕 Most recent post only',
+                    'first': '1️⃣ First post only',
+                    'previous': '⏮️ Previous (second most recent) post',
+                    'specific': `🎯 Specific: "${postTitle || 'unnamed'}"`
+                };
+
+                const mediaTypeNames = {
+                    'any': '',
+                    'VIDEO': ' (Reels/Videos)',
+                    'IMAGE': ' (Images)',
+                    'CAROUSEL_ALBUM': ' (Carousels)'
+                };
+
+                const label = targetLabels[target] || target;
+                const extraInfo = maxPosts > 0 ? ` (max ${maxPosts} posts)` : '';
+                const typeInfo = mediaTypeNames[mediaType];
+
+                // Fetch media for preview
+                const media = await fetchFilteredMedia(token, userId);
+
+                return {
+                    success: true,
+                    message: `Content targeting set to: ${label}${typeInfo}${extraInfo}. Auto-reply will only apply to this content.`,
+                    data: { target, maxPosts, postTitle, mediaType, enabled: true, automationType: 'comment_reply', media }
+                };
+            }
+
+            // ==================== SET TIME LIMIT ====================
+            if (intent === 'set_time_limit') {
+                const hours = params.hours || params.duration || 24;
+                const startedAt = new Date();
+                const expiresAt = new Date(startedAt.getTime() + hours * 60 * 60 * 1000);
+
+                await CreatorPreference.findOneAndUpdate(
+                    { userId },
+                    {
+                        userId,
+                        'timeLimit.enabled': true,
+                        'timeLimit.hours': hours,
+                        'timeLimit.startedAt': startedAt,
+                        'timeLimit.expiresAt': expiresAt
+                    },
+                    { upsert: true }
+                );
+
+                const expireTime = expiresAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const expireDate = expiresAt.toLocaleDateString();
+
+                return {
+                    success: true,
+                    message: `⏰ Time limit set! Auto-reply will be active for **${hours} hours** and auto-stop at ${expireTime} on ${expireDate}.`,
+                    data: { hours, startedAt, expiresAt }
+                };
+            }
+
+            // ==================== SET COMMENT LIMIT ====================
+            if (intent === 'set_comment_limit') {
+                const maxReplies = parseInt(params.maxReplies || params.count || params.limit);
+                const validatedMaxReplies = (!isNaN(maxReplies) && maxReplies > 0) ? maxReplies : 100;
+                
+                const rawScope = (params.scope || 'total').toLowerCase();
+                const allowedScopes = ['per_post', 'total'];
+                const scope = allowedScopes.includes(rawScope) ? rawScope : 'total'; // Fallback
+
+
+                await CreatorPreference.findOneAndUpdate(
+                    { userId },
+                    {
+                        userId,
+                        'commentLimit.enabled': true,
+                        'commentLimit.maxReplies': validatedMaxReplies,
+                        'commentLimit.repliedCount': 0,
+                        'commentLimit.scope': scope
+                    },
+                    { upsert: true }
+                );
+
+                const scopeLabel = scope === 'per_post' ? 'per post' : 'total';
+
+                return {
+                    success: true,
+                    message: `🔢 Comment limit set! I'll reply to a maximum of **${validatedMaxReplies}** comments (${scopeLabel}). After that, I'll stop auto-replying.`,
+                    data: { maxReplies: validatedMaxReplies, scope }
+                };
+            }
+
+            // ==================== GET PREFERENCES ====================
+            if (intent === 'get_preferences') {
+                const prefs = await CreatorPreference.findOne({ userId }).lean();
+
+                if (!prefs) {
+                    return {
+                        success: true,
+                        message: '📋 No custom preferences set. I\'m running with defaults:\n• Content: All posts\n• Time limit: None\n• Comment limit: Unlimited\n\nTell me things like "only automate recent video" or "reply to top 50 comments" to customize!',
+                        data: null
+                    };
+                }
+
+                const targetLabels = {
+                    'all': 'All posts/videos',
+                    'recent': 'Most recent only',
+                    'first': 'First post only',
+                    'previous': 'Previous post',
+                    'specific': `Specific: "${prefs.contentTarget?.specificPostTitle || 'unnamed'}"`
+                };
+
+                const lines = [
+                    '📋 **Your Automation Preferences:**\n',
+                    `🎯 **Content:** ${targetLabels[prefs.contentTarget?.type] || 'All'}${prefs.contentTarget?.maxPosts ? ` (max ${prefs.contentTarget.maxPosts} posts)` : ''}`,
+                ];
+
+                if (prefs.timeLimit?.enabled) {
+                    const remaining = prefs.timeLimit.expiresAt
+                        ? Math.max(0, Math.round((new Date(prefs.timeLimit.expiresAt) - Date.now()) / (1000 * 60 * 60) * 10) / 10)
+                        : 0;
+                    lines.push(`⏰ **Time Limit:** ${prefs.timeLimit.hours}h (${remaining > 0 ? `${remaining}h remaining` : '⚠️ Expired'})`);
+                } else {
+                    lines.push('⏰ **Time Limit:** No limit');
+                }
+
+                if (prefs.commentLimit?.enabled) {
+                    lines.push(`🔢 **Comment Limit:** ${prefs.commentLimit.repliedCount}/${prefs.commentLimit.maxReplies} (${prefs.commentLimit.scope})`);
+                } else {
+                    lines.push('🔢 **Comment Limit:** Unlimited');
+                }
+
+                if (prefs.platforms) {
+                    const active = [];
+                    if (prefs.platforms.instagram) active.push('📸 Instagram');
+                    if (prefs.platforms.youtube) active.push('🎬 YouTube');
+                    lines.push(`🌐 **Platforms:** ${active.length > 0 ? active.join(', ') : 'None'}`);
+                }
+
+                return {
+                    success: true,
+                    message: lines.join('\n'),
+                    data: prefs
+                };
+            }
+
+            // ==================== RESET PREFERENCES ====================
+            if (intent === 'reset_preferences') {
+                await CreatorPreference.findOneAndUpdate(
+                    { userId },
+                    {
+                        userId,
+                        contentTarget: { type: 'all', specificPostId: '', specificPostTitle: '', maxPosts: 0 },
+                        timeLimit: { enabled: false, hours: 0, startedAt: null, expiresAt: null },
+                        commentLimit: { enabled: false, maxReplies: 0, repliedCount: 0, scope: 'total' },
+                        platforms: { instagram: true, youtube: false }
+                    },
+                    { upsert: true }
+                );
+
+                return {
+                    success: true,
+                    message: '🔄 All preferences reset to defaults! Auto-reply will apply to all posts with no time or comment limits.',
+                    data: null
+                };
+            }
+
+            return { success: false, message: 'Unknown preference action.' };
+        } catch (error) {
+            console.error('[Handler:preferences] Error:', error.message);
+            // Sanitized user-friendly error
+            return { success: false, message: `I hit a small glitch while updating your preferences. Could you please specify that again?` };
+        }
+    }
+};
