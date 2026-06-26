@@ -76,6 +76,7 @@ mongoose.connect(process.env.MONGODB_URI)
     process.exit(1);
   });
 
+  
 // ==================== ROUTES ====================
 const instaRoutes = require('./route/instaautomationapi');
 app.use('/api/instagram', instaRoutes);
@@ -246,3 +247,5 @@ server.listen(PORT, () => {
 });
 
 module.exports = server;
+
+
