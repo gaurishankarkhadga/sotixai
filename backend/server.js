@@ -71,12 +71,14 @@ mongoose.connect(process.env.MONGODB_URI)
       console.error('[Startup-Fix] Cleanup error (non-fatal):', cleanupErr.message);
     }
   })
+
+  
   .catch((err) => {
     console.error('[MongoDB] Connection error:', err.message);
     process.exit(1);
   });
 
-  
+
 // ==================== ROUTES ====================
 const instaRoutes = require('./route/instaautomationapi');
 app.use('/api/instagram', instaRoutes);
