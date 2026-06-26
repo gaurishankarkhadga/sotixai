@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Plus, User, Briefcase, BookOpen, MessageCircle, Info, Folder, Edit, Mail, Globe, Youtube, Twitter, Instagram, Linkedin, Trash2, ExternalLink } from 'lucide-react';
 import BioLinkEditPanel from './BioLinkEditPanel';
@@ -23,11 +23,7 @@ const BioLink = () => {
   const [biolinks, setBiolinks] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const instaToken = localStorage.getItem('insta_token');
       const ytChannelId = localStorage.getItem('yt_channel_id');
@@ -54,7 +50,11 @@ const BioLink = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [navigate]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handleCreateNew = () => {
     navigate('/biolink/editor', { state: { reset: true, new: true } });

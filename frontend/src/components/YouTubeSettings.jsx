@@ -6,14 +6,14 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000
 
 function YouTubeSettings() {
     const [channelId, setChannelId] = useState('');
-    const [channelTitle, setChannelTitle] = useState('');
+    const [_channelTitle, _setChannelTitle] = useState('');
     const [profile, setProfile] = useState(null);
     const [videos, setVideos] = useState([]);
     const [selectedVideo, setSelectedVideo] = useState(null);
     const [comments, setComments] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [loadingInsta, setLoadingInsta] = useState(false);
-    const [loadingYT, setLoadingYT] = useState(false);
+    const [_loading, _setLoading] = useState(false);
+    const [_loadingInsta, _setLoadingInsta] = useState(false);
+    const [_loadingYT, _setLoadingYT] = useState(false);
     const [error, setError] = useState('');
 
     // Auto-reply state (mirroring Instagram)
@@ -46,7 +46,7 @@ function YouTubeSettings() {
             if (titleParam) localStorage.setItem('yt_channel_title', titleParam);
 
             setChannelId(channelParam);
-            setChannelTitle(titleParam || '');
+            _setChannelTitle(titleParam || '');
             window.history.replaceState({}, document.title, window.location.pathname);
         } else {
             const storedChannelId = localStorage.getItem('yt_channel_id');
@@ -54,7 +54,7 @@ function YouTubeSettings() {
 
             if (storedChannelId) {
                 setChannelId(storedChannelId);
-                setChannelTitle(storedTitle || '');
+                _setChannelTitle(storedTitle || '');
             }
         }
     }, []);
@@ -67,13 +67,14 @@ function YouTubeSettings() {
             fetchAutoReplySettings();
             fetchAutoReplyLog();
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [channelId]);
 
     // ==================== OAUTH ====================
 
-    const handleConnect = async () => {
+    const _handleConnect = async () => {
         try {
-            setLoadingYT(true);
+            _setLoadingYT(true);
             setError('');
 
             const response = await fetch(`${API_BASE_URL}/api/youtube/auth`);
@@ -87,13 +88,13 @@ function YouTubeSettings() {
         } catch (err) {
             setError(`Connection error: ${err.message}`);
         } finally {
-            setLoadingYT(false);
+            _setLoadingYT(false);
         }
     };
 
-    const handleConnectInstagram = async () => {
+    const _handleConnectInstagram = async () => {
         try {
-            setLoadingInsta(true);
+            _setLoadingInsta(true);
             setError('');
 
             const response = await fetch(`${API_BASE_URL}/api/instagram/auth`);
@@ -107,13 +108,13 @@ function YouTubeSettings() {
         } catch (err) {
             setError(`Connection error: ${err.message}`);
         } finally {
-            setLoadingInsta(false);
+            _setLoadingInsta(false);
         }
     };
 
     const handleDisconnect = () => {
         setChannelId('');
-        setChannelTitle('');
+        _setChannelTitle('');
         setProfile(null);
         setVideos([]);
         setComments([]);
@@ -126,7 +127,7 @@ function YouTubeSettings() {
 
     const fetchProfile = async () => {
         try {
-            setLoading(true);
+            _setLoading(true);
             const response = await fetch(`${API_BASE_URL}/api/youtube/profile?channelId=${channelId}`);
             const data = await response.json();
 
@@ -138,7 +139,7 @@ function YouTubeSettings() {
         } catch (err) {
             setError(`Profile fetch error: ${err.message}`);
         } finally {
-            setLoading(false);
+            _setLoading(false);
         }
     };
 

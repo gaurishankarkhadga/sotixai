@@ -1,12 +1,58 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 
 import './BioLinkElement.css';
 
-const BioLinkElement = ({ element, isPreview = false, settings = {} }) => {
+const BioLinkElement = ({ element, settings = {} }) => {
   const [showImageModal, setShowImageModal] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  const images = element.content?.images || [];
+
+  const handleImageClick = (index) => {
+    setCurrentImageIndex(index);
+    setShowImageModal(true);
+  };
+
+  const handlePrevImage = useCallback(() => {
+    setCurrentImageIndex((prev) => (prev > 0 ? prev - 1 : images.length - 1));
+  }, [images.length]);
+
+  const handleNextImage = useCallback(() => {
+    setCurrentImageIndex((prev) => (prev < images.length - 1 ? prev + 1 : 0));
+  }, [images.length]);
+
+  const handleCloseModal = useCallback(() => {
+    setShowImageModal(false);
+  }, []);
+
+  const handleKeyDown = useCallback((e) => {
+    if (!showImageModal) return;
+    
+    switch (e.key) {
+      case 'Escape':
+        handleCloseModal();
+        break;
+      case 'ArrowLeft':
+        e.preventDefault();
+        handlePrevImage();
+        break;
+      case 'ArrowRight':
+        e.preventDefault();
+        handleNextImage();
+        break;
+      default:
+        break;
+    }
+  }, [showImageModal, handleCloseModal, handlePrevImage, handleNextImage]);
+
+  useEffect(() => {
+    if (showImageModal) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => document.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [showImageModal, handleKeyDown]);
 
   const renderElement = () => {
     switch (element.type) {
@@ -35,8 +81,6 @@ const BioLinkElement = ({ element, isPreview = false, settings = {} }) => {
   };
 
   const renderGallery = () => {
-    const images = element.content?.images || [];
-    
     // Helper function to get the correct image URL
     const getImageUrl = (imageUrl) => {
       if (imageUrl.startsWith('data:')) {
@@ -50,50 +94,6 @@ const BioLinkElement = ({ element, isPreview = false, settings = {} }) => {
         return `${import.meta.env.VITE_API_BASE_URL}${imageUrl}`;
       }
     };
-    
-    const handleImageClick = (index) => {
-      setCurrentImageIndex(index);
-      setShowImageModal(true);
-    };
-
-    const handlePrevImage = () => {
-      setCurrentImageIndex((prev) => (prev > 0 ? prev - 1 : images.length - 1));
-    };
-
-    const handleNextImage = () => {
-      setCurrentImageIndex((prev) => (prev < images.length - 1 ? prev + 1 : 0));
-    };
-
-  const handleCloseModal = () => {
-    setShowImageModal(false);
-  };
-
-  // Keyboard navigation for modal
-  const handleKeyDown = (e) => {
-    if (!showImageModal) return;
-    
-    switch (e.key) {
-      case 'Escape':
-        handleCloseModal();
-        break;
-      case 'ArrowLeft':
-        e.preventDefault();
-        handlePrevImage();
-        break;
-      case 'ArrowRight':
-        e.preventDefault();
-        handleNextImage();
-        break;
-    }
-  };
-
-  // Add keyboard event listener when modal is open
-  useEffect(() => {
-    if (showImageModal) {
-      document.addEventListener('keydown', handleKeyDown);
-      return () => document.removeEventListener('keydown', handleKeyDown);
-    }
-  }, [showImageModal, currentImageIndex]);
 
     if (images.length === 0) {
       return (

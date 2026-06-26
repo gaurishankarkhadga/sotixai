@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { instagramService } from '../services/instagram';
 import '../styles/Instagram.css';
 
@@ -7,21 +7,23 @@ const InstagramConnect = () => {
     const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(false);
 
-    useEffect(() => {
-        checkConnection();
-    }, []);
-
-    const checkConnection = async () => {
+    const checkConnection = useCallback(async () => {
         try {
             const response = await instagramService.getProfile();
             if (response.success) {
                 setIsConnected(true);
                 setProfile(response.profile);
             }
-        } catch (error) {
+        } catch {
             setIsConnected(false);
         }
-    };
+    }, []);
+
+    /* eslint-disable react-hooks/set-state-in-effect */
+    useEffect(() => {
+        checkConnection();
+    }, [checkConnection]);
+    /* eslint-enable react-hooks/set-state-in-effect */
 
     const handleConnect = async () => {
         try {

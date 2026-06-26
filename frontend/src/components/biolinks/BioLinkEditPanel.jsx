@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import { debounce } from 'lodash';
 import {
   Plus, Eye, Share2, User, FileText, Link, MousePointer,
   GripHorizontal, GripVertical, X, Palette, Upload, Camera, Video, Minus,
   Edit2, Trash2, Calendar, Mail, Check, ArrowUpRight, Smartphone
 } from 'lucide-react';
-import { motion, Reorder } from 'framer-motion';
+import { Reorder } from 'framer-motion';
 import BioLinkElement from './BioLinkElement';
 import './BioLinkEditPanel.css';
 
@@ -171,7 +171,6 @@ const LinkRow = ({ link, socialPlatforms, handlePlatformChange, updateLink, remo
 
 
 const BioLinkEditPanel = ({ user: userProp = null, biolink: biolinkProp = null, onUpdate }) => {
-  const navigate = useNavigate();
   const safeColor = (color) => {
     if (!color || typeof color !== 'string') return '#000000';
     if (color.startsWith('#')) return color.substring(0, 7);
@@ -232,7 +231,6 @@ const BioLinkEditPanel = ({ user: userProp = null, biolink: biolinkProp = null, 
   const [biolinkData, setBiolinkData] = useState(normalizeBiolink(biolinkProp));
   const [isNew, setIsNew] = useState(false);
   const [isLoading, setIsLoading] = useState(!biolinkProp);
-    const [isSaving, setIsSaving] = useState(false);
   const debouncedAutoSave = useRef(
     debounce(() => {
       autoSave();
@@ -311,7 +309,7 @@ const BioLinkEditPanel = ({ user: userProp = null, biolink: biolinkProp = null, 
     }
   ];
 
-  const socialPlatforms = [
+  const socialPlatforms = useMemo(() => [
     {
       id: 'instagram',
       name: 'Instagram',
@@ -442,7 +440,7 @@ const BioLinkEditPanel = ({ user: userProp = null, biolink: biolinkProp = null, 
       ),
       urlPrefix: 'https://pinterest.com/'
     }
-  ];
+  ], []);
 
   // Initialize data when props change
   useEffect(() => {
@@ -507,6 +505,7 @@ const BioLinkEditPanel = ({ user: userProp = null, biolink: biolinkProp = null, 
     } else {
       setIsLoading(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [biolinkProp, userProp, location?.state?.id]);
 
 
@@ -562,11 +561,10 @@ const BioLinkEditPanel = ({ user: userProp = null, biolink: biolinkProp = null, 
       ...prev,
       links: (isNew || !hasExistingContent) ? starterLinks : prev.links,
       elements: (isNew || !hasExistingContent) ? [] : prev.elements
-    }));
-
-    localStorage.removeItem('selectedTemplate');
+    }));    localStorage.removeItem('selectedTemplate');
     appliedTemplateRef.current = true;
-        debouncedAutoSave();
+         debouncedAutoSave();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading]);
 
   // Apply template passed via navigation state (from template picker)
@@ -576,7 +574,7 @@ const BioLinkEditPanel = ({ user: userProp = null, biolink: biolinkProp = null, 
     if (template) {
       const selectedTheme = themes.find(t => t.id === template);
       // Only apply theme styles if we're creating new or there is no existing content
-      const hasExistingContent =
+      const _hasExistingContent =
         !!biolinkProp?._id ||
         !!biolinkData?._id ||
         (Array.isArray(biolinkData?.links) && biolinkData.links.length > 0) ||
@@ -618,13 +616,15 @@ const BioLinkEditPanel = ({ user: userProp = null, biolink: biolinkProp = null, 
         setBiolinkData(prev => ({ ...normalizeBiolink(null), theme: prev.theme, settings: prev.settings }));
       }
     }
-        debouncedAutoSave();
+         debouncedAutoSave();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location]);
 
   // Auto-save interval
   useEffect(() => {
     const autoSaveInterval = setInterval(autoSave, 60000); // Changed from 30000 to 60000 (60 seconds)
     return () => clearInterval(autoSaveInterval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [biolinkData]);
 
   // Notify parent after state commits to avoid setState during render warnings
@@ -636,6 +636,7 @@ const BioLinkEditPanel = ({ user: userProp = null, biolink: biolinkProp = null, 
       }
       onUpdate(biolinkData);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [biolinkData]);
 
   // Listen to reordering postMessages from live iframe preview
@@ -881,7 +882,7 @@ const BioLinkEditPanel = ({ user: userProp = null, biolink: biolinkProp = null, 
         } else {
           const errorText = await response.text();
           let parsed;
-          try { parsed = JSON.parse(errorText); } catch { }
+          try { parsed = JSON.parse(errorText); } catch { parsed = null; }
 
           if (parsed?.error === 'Username already taken') {
             // Prompt user for a different username
@@ -922,7 +923,7 @@ const BioLinkEditPanel = ({ user: userProp = null, biolink: biolinkProp = null, 
         debouncedAutoSave(); // Changed from 1000 to 2000ms
   };
 
-  const handleGalleryUpload = async (elementId, files) => {
+  const _handleGalleryUpload = async (elementId, files) => {
     try {
       const fileList = Array.from(files);
 
@@ -1049,7 +1050,7 @@ const BioLinkEditPanel = ({ user: userProp = null, biolink: biolinkProp = null, 
             setIsNew(false);
           }
           console.log('Auto-save successful, _id:', data?.biolink?._id);
-        } catch (e) {
+        } catch {
           console.log('Auto-save successful (empty/non-JSON response)');
         }
       } else {
@@ -1141,7 +1142,7 @@ const BioLinkEditPanel = ({ user: userProp = null, biolink: biolinkProp = null, 
         debouncedAutoSave();
   };
 
-  const addProduct = () => {
+  const _addProduct = () => {
     setBiolinkData(prev => ({
       ...prev,
       products: [...prev.products, {
@@ -1167,7 +1168,7 @@ const BioLinkEditPanel = ({ user: userProp = null, biolink: biolinkProp = null, 
         debouncedAutoSave();
   };
 
-  const removeProduct = (index) => {
+  const _removeProduct = (index) => {
     setBiolinkData(prev => ({
       ...prev,
       products: prev.products.filter((_, i) => i !== index)
@@ -1175,7 +1176,7 @@ const BioLinkEditPanel = ({ user: userProp = null, biolink: biolinkProp = null, 
         debouncedAutoSave();
   };
 
-  const handleProductImageUpload = async (index, file) => {
+  const _handleProductImageUpload = async (index, file) => {
     if (!file) return;
 
     const formData = new FormData();
@@ -1376,7 +1377,7 @@ const BioLinkEditPanel = ({ user: userProp = null, biolink: biolinkProp = null, 
 
   const handleDrop = (e, dropIndex) => {
     e.preventDefault();
-    const draggedElementId = e.dataTransfer.getData('elementId');
+    const _draggedElementId = e.dataTransfer.getData('elementId');
     const draggedIndex = parseInt(e.dataTransfer.getData('elementIndex'));
 
     if (draggedIndex !== dropIndex) {
@@ -1475,7 +1476,7 @@ const BioLinkEditPanel = ({ user: userProp = null, biolink: biolinkProp = null, 
   };
 
   // Merged Content tab: Links + Shop + Content Elements
-  const renderContentSection = () => (
+  const _renderContentSection = () => (
     <div className="section-content">
       {/* Links Sub-section */}
       <div className="content-subsection">
@@ -1541,13 +1542,13 @@ const BioLinkEditPanel = ({ user: userProp = null, biolink: biolinkProp = null, 
 
       {/* Content Elements Sub-section */}
       <div className="content-subsection">
-        {renderContentElementsSection()}
+        {renderLayoutElementsSection()}
       </div>
     </div>
   );
 
   // Merged Design tab: Themes + Media
-  const renderDesignSection = () => (
+  const _renderDesignSection = () => (
     <div className="section-content">
       {/* Themes Sub-section */}
       <div className="content-subsection">
@@ -2694,7 +2695,7 @@ const BioLinkEditPanel = ({ user: userProp = null, biolink: biolinkProp = null, 
     </div>
   );
 
-  const oldLivePreviewContent = (
+  const _oldLivePreviewContent = (
     <div className="mobile-preview" style={{
       background: biolinkData.settings.backgroundImage 
         ? `url(${getMediaUrl(biolinkData.settings.backgroundImage)}) center / cover` 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Edit3, Trash2, ExternalLink, Loader, Link2,
@@ -119,11 +119,7 @@ function BioLinkChatPreview({ biolinkId, url }) {
     const [loading, setLoading] = useState(false);
     const [activeView, setActiveView] = useState('links');
 
-    useEffect(() => {
-        if (biolinkId) fetchBiolinkData();
-    }, [biolinkId]);
-
-    const fetchBiolinkData = async () => {
+    const fetchBiolinkData = useCallback(async () => {
         setLoading(true);
         try {
             const instaUserId = localStorage.getItem('insta_user_id');
@@ -137,7 +133,11 @@ function BioLinkChatPreview({ biolinkId, url }) {
             if (data.biolink) setBiolink(data.biolink);
         } catch { /* silent */ }
         finally { setLoading(false); }
-    };
+    }, [biolinkId]);
+
+    useEffect(() => {
+        if (biolinkId) fetchBiolinkData();
+    }, [biolinkId, fetchBiolinkData]);
 
     const handleEdit = () => {
         if (biolink?._id) {
@@ -184,7 +184,6 @@ function BioLinkChatPreview({ biolinkId, url }) {
     const links = (biolink.links || []).filter(l => l.isActive !== false);
     const products = biolink.products || [];
     const elements = biolink.elements || [];
-    const theme = biolink.theme || 'modern';
     const styleType = settings.styleType || 'glass';
     const layoutStyle = settings.layoutStyle || 'default';
 

@@ -1,25 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Instagram, Youtube } from 'lucide-react';
 import InstagramSettings from '../components/InstagramSettings';
 import YouTubeSettings from '../components/YouTubeSettings';
 import '../styles/AdvancedSettings.css';
 
+function getInitialTab() {
+    const hasInsta = !!localStorage.getItem('insta_token');
+    const hasYt = !!localStorage.getItem('yt_channel_id');
+    if (hasYt && !hasInsta) return 'youtube';
+    return 'instagram';
+}
+
 function AdvancedSettings() {
     const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState('instagram');
-
-    // Automatically switch to the active platform if only one is connected
-    useEffect(() => {
-        const hasInsta = !!localStorage.getItem('insta_token');
-        const hasYt = !!localStorage.getItem('yt_channel_id');
-
-        if (hasYt && !hasInsta) {
-            setActiveTab('youtube');
-        } else if (hasInsta && !hasYt) {
-            setActiveTab('instagram');
-        }
-    }, []);
+    const [activeTab, setActiveTab] = useState(getInitialTab);
 
     return (
         <div className="advanced-settings-page">

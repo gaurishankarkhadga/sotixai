@@ -17,8 +17,8 @@ function InstagramSettings() {
     const [profile, setProfile] = useState(null);
     const [media, setMedia] = useState(null);
     const [loading, setLoading] = useState(false);
-    const [loadingInsta, setLoadingInsta] = useState(false);
-    const [loadingYT, setLoadingYT] = useState(false);
+    const [_loadingInsta, _setLoadingInsta] = useState(false);
+    const [_loadingYT, _setLoadingYT] = useState(false);
     const [error, setError] = useState('');
 
     const { toasts, addToast, removeToast } = useToasts();
@@ -29,7 +29,7 @@ function InstagramSettings() {
     const [autoReplyMessage, setAutoReplyMessage] = useState('Thanks for your comment! 🙏');
     const [autoReplyLog, setAutoReplyLog] = useState([]);
     const [autoReplySaving, setAutoReplySaving] = useState(false);
-    const [autoReplyStatus, setAutoReplyStatus] = useState('');
+    const [_autoReplyStatus, _setAutoReplyStatus] = useState('');
     const [replyMode, setReplyMode] = useState('reply_only');
     const [viralTagEnabled, setViralTagEnabled] = useState(false);
 
@@ -39,7 +39,7 @@ function InstagramSettings() {
     const [dmAutoReplyMessage, setDmAutoReplyMessage] = useState('Thanks for reaching out! I will get back to you shortly.');
     const [dmAutoReplyLog, setDmAutoReplyLog] = useState([]);
     const [dmAutoReplySaving, setDmAutoReplySaving] = useState(false);
-    const [dmAutoReplyStatus, setDmAutoReplyStatus] = useState('');
+    const [_dmAutoReplyStatus, _setDmAutoReplyStatus] = useState('');
     const [dmReplyMode, setDmReplyMode] = useState('static');
     const [storyMentionEnabled, setStoryMentionEnabled] = useState(false);
     const [storyMentionMessage, setStoryMentionMessage] = useState('Thank you so much for the mention! ❤️');
@@ -63,7 +63,7 @@ function InstagramSettings() {
     });
 
     // Webhook subscription state
-    const [webhookStatus, setWebhookStatus] = useState('');
+    const [_webhookStatus, _setWebhookStatus] = useState('');
     const [webhookLoading, setWebhookLoading] = useState(false);
 
     useEffect(() => {
@@ -103,11 +103,12 @@ function InstagramSettings() {
             fetchDmAutoReplyLog();
             fetchCreatorAssets();
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [token, userId]);
 
-    const handleConnect = async () => {
+    const _handleConnect = async () => {
         try {
-            setLoadingInsta(true);
+            _setLoadingInsta(true);
             setError('');
 
             const response = await fetch(`${API_BASE_URL}/api/instagram/auth`);
@@ -121,13 +122,13 @@ function InstagramSettings() {
         } catch (err) {
             setError(`Connection error: ${err.message}`);
         } finally {
-            setLoadingInsta(false);
+            _setLoadingInsta(false);
         }
     };
 
-    const handleConnectYouTube = async () => {
+    const _handleConnectYouTube = async () => {
         try {
-            setLoadingYT(true);
+            _setLoadingYT(true);
             setError('');
 
             const response = await fetch(`${API_BASE_URL}/api/youtube/auth`);
@@ -141,7 +142,7 @@ function InstagramSettings() {
         } catch (err) {
             setError(`Connection error: ${err.message}`);
         } finally {
-            setLoadingYT(false);
+            _setLoadingYT(false);
         }
     };
 

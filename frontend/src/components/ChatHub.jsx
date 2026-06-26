@@ -89,6 +89,7 @@ function ChatHub() {
         if (userId) {
             fetchDynamicPrompts(userId);
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [userId]);
 
     // ── Auth & connection check ──────────────────────────────────────
@@ -115,12 +116,14 @@ function ChatHub() {
     useEffect(() => {
         if (token && userId) { fetchProfile(); loadChatHistory(); }
         if (userId) { fetchActiveCount(); fetchQuota(); triggerMorningBriefing(); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [token, userId]);
 
     useEffect(() => {
         if (!userId) return;
         const id = setInterval(() => { fetchActiveCount(); fetchQuota(); }, 30000);
         return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [userId]);
 
     useEffect(() => { scrollToBottom(); }, [messages, isTyping]);
@@ -153,6 +156,7 @@ function ChatHub() {
                 socketRef.current = null;
             }
         };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [userId]);
 
     // ── Morning Briefing (auto-trigger on first load of the day) ────
@@ -179,7 +183,7 @@ function ChatHub() {
                     timestamp: new Date().toISOString()
                 }, ...prev]);
             }
-        } catch { }
+        } catch { /* silent */ }
     };
 
     // ── API helpers ──────────────────────────────────────────────────
@@ -202,7 +206,7 @@ function ChatHub() {
                     });
                 }
             }
-        } catch { }
+        } catch { /* silent */ }
     };
 
     const fetchActiveCount = async () => {
@@ -210,7 +214,7 @@ function ChatHub() {
             const res = await fetch(`${API_BASE_URL}/api/chat/active-count/${userId}`);
             const data = await res.json();
             if (data.success) setActiveAutomations({ count: data.activeCount, list: data.activeList });
-        } catch { }
+        } catch { /* silent */ }
     };
 
     const fetchQuota = async () => {
@@ -218,7 +222,7 @@ function ChatHub() {
             const res = await fetch(`${API_BASE_URL}/api/chat/quota`);
             const data = await res.json();
             if (data.success) setQuota(data);
-        } catch { }
+        } catch { /* silent */ }
     };
 
     const loadChatHistory = async () => {
@@ -227,7 +231,7 @@ function ChatHub() {
             const res = await fetch(`${API_BASE_URL}/api/chat/history/${userId}`);
             const data = await res.json();
             if (data.success && data.messages.length > 0) setHistoryMessages(data.messages);
-        } catch { }
+        } catch { /* silent */ }
         finally { setLoadingHistory(false); }
     };
 
@@ -240,7 +244,7 @@ function ChatHub() {
             if (data.success) {
                 setCrmData(data.groupedDeals);
             }
-        } catch { }
+        } catch { /* silent */ }
         finally { setLoadingCrm(false); }
     };
 
@@ -382,7 +386,7 @@ function ChatHub() {
             const res = await fetch(`${API_BASE_URL}${endpoint}`);
             const data = await res.json();
             if (data.url || data.authUrl) window.location.href = data.url || data.authUrl;
-        } catch { }
+        } catch { /* silent */ }
         finally { setConnectingPlatform(null); }
     };
 
@@ -576,20 +580,23 @@ function ChatHub() {
                             { icon: Package, label: 'My Assets', action: 'assets' },
                             { icon: User, label: 'Profile', action: 'navigate', path: '/profile' },
                             { icon: RotateCcw, label: 'Preferences', msg: 'Show my preferences' },
-                        ].map(({ icon: Icon, label, msg, action, path, state }) => (
-                            <button key={label} className="sidebar-action-btn"
-                                onClick={() => {
-                                    if (action === 'navigate') { navigate(path, state ? { state } : undefined); }
-                                    else if (action === 'assets') { navigate('/assets'); }
-                                    else { sendMessage(msg); }
-                                    setSidebarOpen(false);
-                                }}
-                                id={`qa-${label.replace(/\s/g, '-').toLowerCase()}`}
-                            >
-                                <Icon size={14} />
-                                <span>{label}</span>
-                            </button>
-                        ))}
+                        ].map(({ icon: Icon, label: itemLabel, msg, action, path, state }) => {
+                            void Icon;
+                            return (
+                                <button key={itemLabel} className="sidebar-action-btn"
+                                    onClick={() => {
+                                        if (action === 'navigate') { navigate(path, state ? { state } : undefined); }
+                                        else if (action === 'assets') { navigate('/assets'); }
+                                        else { sendMessage(msg); }
+                                        setSidebarOpen(false);
+                                    }}
+                                    id={`qa-${itemLabel.replace(/\s/g, '-').toLowerCase()}`}
+                                >
+                                    <Icon size={14} />
+                                    <span>{itemLabel}</span>
+                                </button>
+                            );
+                        })}
                     </div>
 
                     {/* Connections */}
@@ -1196,15 +1203,18 @@ function ChatHub() {
                             {hasPrePrompts && (
                                 <div className="chat-pre-prompts-container anim-slide-up">
                                     <div className="chat-pre-prompts-scroll">
-                                        {dynamicPrompts.map(({ icon: Icon, text, label }, i) => (
-                                            <button key={i} className="pre-prompt-chip" onClick={() => {
-                                                setInputValue(text);
-                                                inputRef.current?.focus();
-                                            }}>
-                                                <Icon size={12} strokeWidth={2.5} />
-                                                <span>{text}</span>
-                                            </button>
-                                        ))}
+                                        {dynamicPrompts.map(({ icon: Icon, text }, i) => {
+                                            void Icon;
+                                            return (
+                                                <button key={i} className="pre-prompt-chip" onClick={() => {
+                                                    setInputValue(text);
+                                                    inputRef.current?.focus();
+                                                }}>
+                                                    <Icon size={12} strokeWidth={2.5} />
+                                                    <span>{text}</span>
+                                                </button>
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             )}

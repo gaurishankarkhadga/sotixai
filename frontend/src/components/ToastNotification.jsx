@@ -61,6 +61,7 @@ function ToastItem({ toast, onRemove }) {
 }
 
 // ==================== TOAST HOOK ====================
+// eslint-disable-next-line react-refresh/only-export-components
 export function useToasts() {
     const [toasts, setToasts] = useState([]);
 

@@ -10,7 +10,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { motion, AnimatePresence, Reorder } from 'framer-motion';
+// eslint-disable-next-line no-unused-vars
+import { AnimatePresence, Reorder, motion } from 'framer-motion';
 import {
   Instagram, Youtube, Twitter, Facebook, Linkedin, Twitch,
   Music2, Globe, Github, MessageCircle, Link2, ChevronRight,
@@ -188,7 +189,7 @@ const LinkRow = React.memo(function LinkRow({ link, onTrackClick, themeStyle }) 
 });
 
 // ─── Product Card ─────────────────────────────────────────
-const ProductCard = React.memo(function ProductCard({ product, apiBase, themeStyle }) {
+const ProductCard = React.memo(function ProductCard({ product, themeStyle }) {
   const imgSrc = product.image ? getMediaUrl(product.image) : null;
 
   return (
@@ -279,6 +280,7 @@ const PublicBioLink = () => {
       }
     };
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [username]);
 
   // Listen for real-time preview updates from parent editor window via postMessage

@@ -7,7 +7,6 @@ function SimpleTest() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [accessToken, setAccessToken] = useState(null);
-    const [userId, setUserId] = useState(null);
 
     // Check if we got redirected back with token
     useEffect(() => {
@@ -20,7 +19,6 @@ function SimpleTest() {
             setError(decodeURIComponent(errorParam));
         } else if (token && id) {
             setAccessToken(token);
-            setUserId(id);
             fetchProfile(token, id);
         }
     }, []);

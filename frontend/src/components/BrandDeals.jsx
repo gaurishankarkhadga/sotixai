@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import '../styles/BrandDeals.css';
 import DealNegotiatorSettings from './DealNegotiatorSettings';
 
@@ -18,6 +18,20 @@ const SOURCE_CONFIG = {
     manual: { label: 'Manual', color: '#a5d6a7', icon: '📌' }
 };
 
+const timeAgo = (ts) => {
+    if (!ts) return '';
+    const d = Math.floor((Date.now() - new Date(ts)) / 1000);
+    return d < 60 ? 'just now' : d < 3600 ? `${Math.floor(d / 60)}m ago` : d < 86400 ? `${Math.floor(d / 3600)}h ago` : `${Math.floor(d / 86400)}d ago`;
+};
+
+const daysLeft = (deadline) => {
+    if (!deadline) return '';
+    const d = Math.ceil((new Date(deadline) - Date.now()) / (1000 * 60 * 60 * 24));
+    return d <= 0 ? 'Expired' : d === 1 ? '1 day left' : `${d} days left`;
+};
+
+const getMatchColor = (s) => s >= 80 ? '#69f0ae' : s >= 60 ? '#ffab40' : s >= 40 ? '#ffd740' : '#ef5350';
+
 function BrandDeals({ userId, token }) {
     const [view, setView] = useState('marketplace');
     const [campaigns, setCampaigns] = useState([]);
@@ -36,18 +50,12 @@ function BrandDeals({ userId, token }) {
     const [syncing, setSyncing] = useState(false);
     const [syncStats, setSyncStats] = useState(null);
 
-    useEffect(() => {
-        fetchCampaigns();
-        fetchSyncStats();
-        if (userId) fetchApplications();
-    }, [userId]);
-
     const showToast = (msg) => {
         setToast(msg);
         setTimeout(() => setToast(''), 3500);
     };
 
-    const fetchCampaigns = async () => {
+    const fetchCampaigns = useCallback(async () => {
         setLoading(true);
         try {
             const params = new URLSearchParams();
@@ -62,25 +70,34 @@ function BrandDeals({ userId, token }) {
             }
         } catch (e) { console.error('Fetch campaigns error:', e); }
         setLoading(false);
-    };
+    }, [filterNiche, filterComp, filterSource]);
 
-    const fetchApplications = async () => {
+    const fetchApplications = useCallback(async () => {
+        if (!userId) return;
         try {
             const res = await fetch(`${API_BASE_URL}/api/instagram/my-applications?userId=${userId}`);
             const data = await res.json();
             if (data.success) setApplications(data.applications || []);
         } catch (e) { console.error('Fetch applications error:', e); }
-    };
+    }, [userId]);
 
-    const fetchSyncStats = async () => {
+    const fetchSyncStats = useCallback(async () => {
         try {
             const res = await fetch(`${API_BASE_URL}/api/instagram/campaigns/cj-stats`);
             const data = await res.json();
             if (data.success) setSyncStats(data.stats);
-        } catch (e) { /* ignore */ }
-    };
+        } catch { /* ignore */ }
+    }, []);
 
-    useEffect(() => { fetchCampaigns(); }, [filterNiche, filterComp, filterSource]);
+    /* eslint-disable react-hooks/set-state-in-effect */
+    useEffect(() => {
+        fetchCampaigns();
+        fetchSyncStats();
+        if (userId) {
+            fetchApplications();
+        }
+    }, [userId, fetchCampaigns, fetchSyncStats, fetchApplications]);
+    /* eslint-enable react-hooks/set-state-in-effect */
 
     // Sync all CJ deals
     const syncCJDeals = async () => {
@@ -157,17 +174,6 @@ function BrandDeals({ userId, token }) {
         if (c.budgetMax) return `Up to $${c.budgetMax.toLocaleString()}`;
         return `From $${c.budgetMin.toLocaleString()}`;
     };
-    const timeAgo = (ts) => {
-        if (!ts) return '';
-        const d = Math.floor((Date.now() - new Date(ts)) / 1000);
-        return d < 60 ? 'just now' : d < 3600 ? `${Math.floor(d / 60)}m ago` : d < 86400 ? `${Math.floor(d / 3600)}h ago` : `${Math.floor(d / 86400)}d ago`;
-    };
-    const daysLeft = (deadline) => {
-        if (!deadline) return '';
-        const d = Math.ceil((new Date(deadline) - Date.now()) / (1000 * 60 * 60 * 24));
-        return d <= 0 ? 'Expired' : d === 1 ? '1 day left' : `${d} days left`;
-    };
-    const getMatchColor = (s) => s >= 80 ? '#69f0ae' : s >= 60 ? '#ffab40' : s >= 40 ? '#ffd740' : '#ef5350';
 
     return (
         <div className="mp-section">

@@ -20,7 +20,6 @@ const Profile = () => {
 
   const [newLinktree, setNewLinktree] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [message, setMessage] = useState('');
   const [biolinks, setBiolinks] = useState([]);
   const [isBiolinksLoading, setIsBiolinksLoading] = useState(false);
@@ -74,8 +73,7 @@ const Profile = () => {
         linktreeLinks: []
       });
       setIsLoading(false);
-    } catch (err) {
-      setError(err.message || 'Failed to load profile.');
+    } catch {
       setIsLoading(false);
     }
   };
@@ -103,7 +101,7 @@ const Profile = () => {
       setMessage('BioLink Deleted');
       fetchUserBiolinks();
       setTimeout(() => setMessage(''), 2000);
-    } catch (e) { setMessage('Failed to delete'); }
+    } catch { setMessage('Failed to delete'); }
   };
 
   const createLinktreeLink = async () => {
@@ -114,7 +112,7 @@ const Profile = () => {
       setNewLinktree('');
       setMessage('Asset Added');
       setTimeout(() => setMessage(''), 2000);
-    } catch (e) { setMessage('Failed to add asset'); }
+    } catch { setMessage('Failed to add asset'); }
   };
 
   const copyToClipboard = (linkName) => {

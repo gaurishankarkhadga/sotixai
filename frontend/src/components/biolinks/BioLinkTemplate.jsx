@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Eye, Share2, Copy, Check, ExternalLink, ArrowLeft } from 'lucide-react';
 import './BioLinkTemplate.css';
 import BioLinkElement from './BioLinkElement';
@@ -11,11 +11,8 @@ const BioLinkTemplate = ({ isPreview = false, biolink = null, user = null }) => 
     secondary: '#64748b',
     background: '#0b1220'
   });
-  const [showColorPicker, setShowColorPicker] = useState(false);
-  const [activeColor, setActiveColor] = useState(null);
-  const [urlCopied, setUrlCopied] = useState(false);
+  const [_urlCopied, setUrlCopied] = useState(false);
   const [currentUser, setCurrentUser] = useState(user);
-  const location = useLocation();
   const navigate = useNavigate();
 
   const themes = [
@@ -41,15 +38,7 @@ const BioLinkTemplate = ({ isPreview = false, biolink = null, user = null }) => 
     { primary: '#06b6d4', secondary: '#0891b2', background: '#0e1626' }
   ];
 
-  useEffect(() => {
-    if (user) {
-      setCurrentUser(user);
-    } else if (!biolink && !isPreview) {
-      fetchUserProfile();
-    }
-  }, [user, biolink, isPreview]);
-
-  const fetchUserProfile = async () => {
+  const fetchUserProfile = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/profile/me`, {
@@ -65,7 +54,16 @@ const BioLinkTemplate = ({ isPreview = false, biolink = null, user = null }) => 
     } catch (error) {
       console.error('Error fetching user profile:', error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setCurrentUser(user);
+    } else if (!biolink && !isPreview) {
+      fetchUserProfile();
+    }
+  }, [user, biolink, isPreview, fetchUserProfile]);
 
   const handleThemeSelect = (themeId) => {
     setSelectedTheme(themeId);
@@ -89,7 +87,7 @@ const BioLinkTemplate = ({ isPreview = false, biolink = null, user = null }) => 
     }
   };
 
-  const shareBiolink = () => {
+  const _shareBiolink = () => {
     const url = `bio.link/${currentUser?.username || 'username'}`;
     if (navigator.share) {
       navigator.share({
@@ -268,10 +266,7 @@ const BioLinkTemplate = ({ isPreview = false, biolink = null, user = null }) => 
                 <div 
                   className="biolink-template-color-preview" 
                   style={{ backgroundColor: selectedColors.primary }}
-                  onClick={() => {
-                    setActiveColor('primary');
-                    setShowColorPicker(true);
-                  }}
+                  onClick={(e) => e.currentTarget.nextElementSibling?.click()}
                 ></div>
                 <input
                   type="color"
@@ -288,10 +283,7 @@ const BioLinkTemplate = ({ isPreview = false, biolink = null, user = null }) => 
                 <div 
                   className="biolink-template-color-preview" 
                   style={{ backgroundColor: selectedColors.secondary }}
-                  onClick={() => {
-                    setActiveColor('secondary');
-                    setShowColorPicker(true);
-                  }}
+                  onClick={(e) => e.currentTarget.nextElementSibling?.click()}
                 ></div>
                 <input
                   type="color"
@@ -308,10 +300,7 @@ const BioLinkTemplate = ({ isPreview = false, biolink = null, user = null }) => 
                 <div 
                   className="biolink-template-color-preview" 
                   style={{ backgroundColor: selectedColors.background }}
-                  onClick={() => {
-                    setActiveColor('background');
-                    setShowColorPicker(true);
-                  }}
+                  onClick={(e) => e.currentTarget.nextElementSibling?.click()}
                 ></div> 
                 <input 
                   type="color"

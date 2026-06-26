@@ -30,10 +30,6 @@ function DealNegotiatorSettings({ userId, onBack }) {
         creativeBriefRequirement: ''
     });
 
-    useEffect(() => {
-        if (userId) fetchSettings();
-    }, [userId]);
-
     const showToast = (msg) => {
         setToast(msg);
         setTimeout(() => setToast(''), 3000);
@@ -44,13 +40,18 @@ function DealNegotiatorSettings({ userId, onBack }) {
             const res = await fetch(`${API_BASE_URL}/api/instagram/deal-negotiator/settings?userId=${userId}`);
             const data = await res.json();
             if (data.success && data.data) {
-                setPrefs({ ...prefs, ...data.data });
+                setPrefs(prev => ({ ...prev, ...data.data }));
             }
         } catch (e) {
             console.error('Fetch error:', e);
         }
         setLoading(false);
     };
+
+    useEffect(() => {
+        if (userId) fetchSettings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [userId]);
 
     const handleSave = async () => {
         setSaving(true);

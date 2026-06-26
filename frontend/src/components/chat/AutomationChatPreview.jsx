@@ -24,23 +24,11 @@ const MEDIA_ICONS = { VIDEO: Film, CAROUSEL_ALBUM: Grid, IMAGE: Camera };
 function AutomationChatPreview({ actionData }) {
     const [timeLeft, setTimeLeft] = useState(null);
 
-    if (!actionData) return null;
-
-    const automationType = actionData.automationType || detectType(actionData);
-    const isActive = actionData.enabled !== false;
-    const mode = actionData.mode || '';
-    const delay = actionData.delay;
-    const typeConfig = TYPES[automationType] || TYPES.all_automation;
-    const TypeIcon = typeConfig.icon;
-    const modeLabel = typeConfig.modes[mode] || '';
-
-    // Try to use media from actionData
-    const mediaItems = actionData.media || [];
-
     // Calculate time remaining for Comment-to-DM
+    // Hook must always run unconditionally — guard inside the effect body
     useEffect(() => {
-        if (!actionData.expiresAt) return;
-        
+        if (!actionData?.expiresAt) return;
+
         const updateTimer = () => {
             const remaining = new Date(actionData.expiresAt) - Date.now();
             if (remaining <= 0) {
@@ -55,7 +43,20 @@ function AutomationChatPreview({ actionData }) {
         updateTimer();
         const interval = setInterval(updateTimer, 60000); // Update every minute
         return () => clearInterval(interval);
-    }, [actionData.expiresAt]);
+    }, [actionData?.expiresAt]);
+
+    if (!actionData) return null;
+
+    const automationType = actionData.automationType || detectType(actionData);
+    const isActive = actionData.enabled !== false;
+    const mode = actionData.mode || '';
+    const delay = actionData.delay;
+    const typeConfig = TYPES[automationType] || TYPES.all_automation;
+    const TypeIcon = typeConfig.icon;
+    const modeLabel = typeConfig.modes[mode] || '';
+
+    // Try to use media from actionData
+    const mediaItems = actionData.media || [];
 
     const isC2D = automationType === 'comment_to_dm';
 
