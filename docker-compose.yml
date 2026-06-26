@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:6.0
+    container_name: sotixai-mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - sotixai-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sotixai-backend
+    restart: always
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/public:/usr/src/app/public
+    environment:
+      - NODE_ENV=production
+      - PORT=8000
+      - MONGODB_URI=mongodb://mongodb:27017/sotixai
+      # The below will default or be overridden by host environment variables
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5173}
+      - BACKEND_URL=${BACKEND_URL:-http://localhost:8000}
+      - WEBHOOK_VERIFY_TOKEN=${WEBHOOK_VERIFY_TOKEN}
+      - INSTAGRAM_APP_ID=${INSTAGRAM_APP_ID}
+      - INSTAGRAM_APP_SECRET=${INSTAGRAM_APP_SECRET}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - sotixai-network
+
+volumes:
+  mongodb_data:
+
+networks:
+  sotixai-network:
+    driver: bridge

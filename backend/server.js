@@ -248,6 +248,32 @@ server.listen(PORT, () => {
   console.log(`[Server] Webhooks enabled. Sockets enabled.`);
 });
 
+// Graceful Shutdown routine
+const gracefulShutdown = (signal) => {
+  console.log(`\n[Server] 🛑 ${signal} received. Commencing graceful shutdown...`);
+  
+  server.close(async () => {
+    console.log('[Server] HTTP/WebSocket server closed.');
+    try {
+      await mongoose.connection.close();
+      console.log('[Server] MongoDB connection closed.');
+      process.exit(0);
+    } catch (err) {
+      console.error('[Server] Error closing database connection:', err.message);
+      process.exit(1);
+    }
+  });
+
+  // Force shutdown if connections cannot be closed within 10 seconds
+  setTimeout(() => {
+    console.error('[Server] Forced shutdown: connections did not close in time.');
+    process.exit(1);
+  }, 10000);
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
 module.exports = server;
 
 
