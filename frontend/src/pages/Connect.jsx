@@ -63,7 +63,8 @@ function Connect() {
         try {
             setLoadingInsta(true);
             setError('');
-            const response = await fetch(`${API_BASE_URL}/api/instagram/auth`);
+            const token = localStorage.getItem('token') || '';
+            const response = await fetch(`${API_BASE_URL}/api/instagram/auth?token=${token}`);
             const data = await response.json();
             if (data.success) {
                 window.location.href = data.authUrl;

@@ -900,7 +900,8 @@ router.get('/auth', (req, res) => {
             client_id: INSTAGRAM_CONFIG.appId,
             redirect_uri: INSTAGRAM_CONFIG.redirectUri,
             scope: INSTAGRAM_CONFIG.scopes.join(','),
-            response_type: 'code'
+            response_type: 'code',
+            state: req.query.token || ''
         });
 
         const authUrl = `${INSTAGRAM_CONFIG.oauthBaseUrl}/authorize?${params.toString()}`;
@@ -993,6 +994,25 @@ router.get('/callback', async (req, res) => {
             
         } catch (profileErr) {
             console.error('[OAuth] Failed to fetch account info:', profileErr.message);
+        }
+
+        // --- WEBHOOK SUBSCRIPTION (CRITICAL FOR PRODUCTION) ---
+        try {
+            console.log('[OAuth] Auto-subscribing account to webhooks (comments, messages)...');
+            const subRes = await axios.post(
+                `${INSTAGRAM_CONFIG.graphBaseUrl}/me/subscribed_apps`,
+                null,
+                {
+                    params: {
+                        subscribed_fields: 'comments,messages',
+                        access_token: longLivedToken
+                    }
+                }
+            );
+            console.log('[OAuth] Webhook subscription success:', JSON.stringify(subRes.data));
+        } catch (subErr) {
+            console.error('[OAuth] Webhook auto-subscribe failed:', subErr.response?.data?.error?.message || subErr.message);
+            // We don't throw here to avoid failing the whole login, but this is critical for webhooks to work.
         }
 
         // Store token in MongoDB
