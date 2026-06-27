@@ -1459,7 +1459,7 @@ async function processWebhookPayload(body) {
                                                                 }
 
                                                                 if (dmMessage) {
-                                                                    const result = await sendPrivateReply(igUserIdMapped, commentData.commentId, dmMessage, tokenData.accessToken);
+                                                                    const result = await sendPrivateReply(igUserId, commentData.commentId, dmMessage, tokenData.accessToken);
                                                                     await DmAutoReplyLog.create({
                                                                         userId: igUserIdMapped,
                                                                         senderId: commentData.senderId,
