@@ -1469,12 +1469,12 @@ async function processWebhookPayload(body) {
                                                                     );
                                                                     dmMessage = dmReply.text;
                                                                 } catch (aiErr) {
-                                                                    console.error('[C2D] AI DM Reply failed, using fallback:', aiErr.message);
-                                                                    // Fallback: Use manual DM message + top asset links
-                                                                    dmMessage = c2dSettings.dmMessage || 'Here is the link you requested!';
-                                                                    const fallbackAssets = creatorAssets.slice(0, 2);
-                                                                    if (fallbackAssets.length > 0) {
-                                                                        dmMessage += '\n\nLinks:\n' + fallbackAssets.map(a => `${a.title}: ${a.url}`).join('\n');
+                                                                    console.error('[C2D] AI DM Reply failed:', aiErr.message);
+                                                                    if (c2dSettings.dmMessage) {
+                                                                        dmMessage = c2dSettings.dmMessage;
+                                                                    } else {
+                                                                        // No fallback to garbage default links. Let it fail gracefully or use creator's exact setting.
+                                                                        dmMessage = "Hey! Having trouble grabbing that link right now, but I'll get back to you shortly!";
                                                                     }
                                                                 }
 
@@ -1812,7 +1812,14 @@ async function processWebhookPayload(body) {
                                                 await new Promise(resolve => setTimeout(resolve, 1500));
                                                 const fanCardResult = await sendGenericTemplate(igUserId, senderId, fanMatchResult.matchedAssets, fanTokenData.accessToken);
                                                 if (!fanCardResult.success) {
-                                                    console.error('[Webhook] Fan card delivery failed, falling back to images...');
+                                                    console.error('[Webhook] Fan card delivery failed, falling back to text links + images...');
+                                                    
+                                                    // Fallback 1: Send links as text so they at least get the URL
+                                                    const textLinks = fanMatchResult.matchedAssets.map(a => `\n${a.title}:\n${a.url}`).join('\n');
+                                                    await new Promise(resolve => setTimeout(resolve, 1500));
+                                                    await sendDirectMessage(igUserId, senderId, textLinks, fanTokenData.accessToken);
+
+                                                    // Fallback 2: Send images
                                                     const fanImages = fanMatchResult.matchedAssets.filter(a => a.imageUrl).map(a => a.imageUrl);
                                                     for (const imgUrl of fanImages) {
                                                         await new Promise(resolve => setTimeout(resolve, 1500));

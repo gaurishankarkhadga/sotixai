@@ -645,11 +645,12 @@ async function matchCreatorAssets(incomingText, creatorAssets) {
         Rules:
         - If generic → return empty matchedAssetIds (the system will use defaults)
         - If specific → return up to 5 most relevant asset IDs, sorted by relevance
-        - Match by MEANING — "I want to get fit" should match fitness products even if the word "fitness" isn't in the message
+        - Match by DEEP MEANING AND VIBE. Fans ask for products in 50+ ways (e.g., "link plz", "send it", "where to buy", "how much?", "hook me up", "I need that", "flow", "protein"). 
+        - If they mention ANYTHING remotely related to a product you have, or just ask for a "link", it is SPECIFIC intent. Match it!
         - MULTI-INTENT: "Give me your course AND the preset pack" = match BOTH assets
         - "I want everything you have" = match ALL assets
-        - Simple reactions ("wow", "nice", emoji-only) are GENERIC
-        - Questions about pricing, courses, links, products = SPECIFIC
+        - Simple greetings/reactions ("wow", "nice", "hello", emoji-only) are GENERIC
+        - ANY question about pricing, courses, links, workouts, presets, or products = SPECIFIC
         `;
 
         const result = await generateContentWithFallback(prompt);
