@@ -1490,10 +1490,13 @@ async function processWebhookPayload(body) {
                                                                     }
                                                                     
                                                                     if (assetsToShare.length > 0) {
-                                                                        const appendedLinks = assetsToShare.map(a => `${a.title}: ${a.url}`).join('\n');
+                                                                        const appendedLinks = assetsToShare.map(a => 
+                                                                            `\n✨ ${a.title.toUpperCase()}\n${a.description ? a.description.substring(0, 50) + '...\n' : ''}👇 Click the link below:\n🔗 ${a.url}`
+                                                                        ).join('\n');
+                                                                        
                                                                         // Check if AI didn't already include the links
                                                                         if (dmMessage && !dmMessage.includes(assetsToShare[0].url)) {
-                                                                            dmMessage += '\n\n🔗 Links:\n' + appendedLinks;
+                                                                            dmMessage += '\n' + appendedLinks;
                                                                         }
                                                                     }
                                                                 }
