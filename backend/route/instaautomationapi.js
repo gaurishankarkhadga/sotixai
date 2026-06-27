@@ -1478,32 +1478,28 @@ async function processWebhookPayload(body) {
                                                                     }
                                                                 }
 
-                                                                if (dmMessage) {
-                                                                    const result = await sendPrivateReply(igUserId, commentData.commentId, dmMessage, tokenData.accessToken);
-
-                                                                    // ==================== NATIVE RICH CARD DELIVERY (C2D) ====================
-                                                                    // After text DM, send matched assets as native Instagram carousel cards
-                                                                    if (currentC2d.useAssets !== false && creatorAssets.length > 0) {
-                                                                        try {
-                                                                            const c2dMatchResult = await aiService.matchCreatorAssets(commentData.text, creatorAssets);
-                                                                            const cardsToSend = c2dMatchResult.matchedAssets.length > 0 ? c2dMatchResult.matchedAssets : creatorAssets.slice(0, 3);
-                                                                            if (cardsToSend.length > 0) {
-                                                                                await new Promise(resolve => setTimeout(resolve, 1500));
-                                                                                console.log(`[C2D] Sending ${cardsToSend.length} assets as native rich cards...`);
-                                                                                const cardResult = await sendGenericTemplate(igUserId, commentData.senderId, cardsToSend, tokenData.accessToken);
-                                                                                if (!cardResult.success) {
-                                                                                    console.error('[C2D] Rich card delivery failed, falling back to images...');
-                                                                                    const c2dImages = cardsToSend.filter(a => a.imageUrl).map(a => a.imageUrl);
-                                                                                    for (const imgUrl of c2dImages) {
-                                                                                        await new Promise(resolve => setTimeout(resolve, 1500));
-                                                                                        await sendDirectMessage(igUserId, commentData.senderId, '', tokenData.accessToken, imgUrl);
-                                                                                    }
-                                                                                }
-                                                                            }
-                                                                        } catch (cardErr) {
-                                                                            console.error('[C2D] Card delivery error (non-fatal):', cardErr.message);
+                                                                // For C2D, Instagram only allows ONE message via Private Reply, and it MUST be text.
+                                                                // We cannot send native rich cards here, so we append the links directly to the text message.
+                                                                if (currentC2d.useAssets !== false && creatorAssets.length > 0) {
+                                                                    let assetsToShare = [];
+                                                                    try {
+                                                                        const c2dMatchResult = await aiService.matchCreatorAssets(commentData.text, creatorAssets);
+                                                                        assetsToShare = c2dMatchResult.matchedAssets.length > 0 ? c2dMatchResult.matchedAssets : creatorAssets.slice(0, 3);
+                                                                    } catch (err) {
+                                                                        assetsToShare = creatorAssets.slice(0, 3);
+                                                                    }
+                                                                    
+                                                                    if (assetsToShare.length > 0) {
+                                                                        const appendedLinks = assetsToShare.map(a => `${a.title}: ${a.url}`).join('\n');
+                                                                        // Check if AI didn't already include the links
+                                                                        if (dmMessage && !dmMessage.includes(assetsToShare[0].url)) {
+                                                                            dmMessage += '\n\n🔗 Links:\n' + appendedLinks;
                                                                         }
                                                                     }
+                                                                }
+
+                                                                if (dmMessage) {
+                                                                    const result = await sendPrivateReply(igUserId, commentData.commentId, dmMessage, tokenData.accessToken);
 
                                                                     await DmAutoReplyLog.create({
                                                                         userId: igUserIdMapped,
