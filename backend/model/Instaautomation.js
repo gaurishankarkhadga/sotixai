@@ -137,6 +137,7 @@ const conversationSchema = new mongoose.Schema({
         brandName: { type: String },
         suggestedRate: { type: String },
         draftReply: { type: String },
+        approvalSummary: { type: String }, // Internal-only: AI's 15-rule checklist analysis for creator preview (NEVER sent to brand)
         status: { type: String, enum: ['pending', 'drafted', 'negotiating', 'contract_prep', 'won', 'lost', 'rejected', 'approved_and_sent'], default: 'pending' },
         followUpDate: { type: Date },
         competitorTags: { type: [String], default: [] },

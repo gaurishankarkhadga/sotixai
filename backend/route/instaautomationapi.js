@@ -1480,11 +1480,37 @@ async function processWebhookPayload(body) {
 
                                                                 if (dmMessage) {
                                                                     const result = await sendPrivateReply(igUserId, commentData.commentId, dmMessage, tokenData.accessToken);
+
+                                                                    // ==================== NATIVE RICH CARD DELIVERY (C2D) ====================
+                                                                    // After text DM, send matched assets as native Instagram carousel cards
+                                                                    if (currentC2d.useAssets !== false && creatorAssets.length > 0) {
+                                                                        try {
+                                                                            const c2dMatchResult = await aiService.matchCreatorAssets(commentData.text, creatorAssets);
+                                                                            const cardsToSend = c2dMatchResult.matchedAssets.length > 0 ? c2dMatchResult.matchedAssets : creatorAssets.slice(0, 3);
+                                                                            if (cardsToSend.length > 0) {
+                                                                                await new Promise(resolve => setTimeout(resolve, 1500));
+                                                                                console.log(`[C2D] Sending ${cardsToSend.length} assets as native rich cards...`);
+                                                                                const cardResult = await sendGenericTemplate(igUserIdMapped, commentData.senderId, cardsToSend, tokenData.accessToken);
+                                                                                if (!cardResult.success) {
+                                                                                    console.error('[C2D] Rich card delivery failed, falling back to images...');
+                                                                                    const c2dImages = cardsToSend.filter(a => a.imageUrl).map(a => a.imageUrl);
+                                                                                    for (const imgUrl of c2dImages) {
+                                                                                        await new Promise(resolve => setTimeout(resolve, 1500));
+                                                                                        await sendDirectMessage(igUserIdMapped, commentData.senderId, '', tokenData.accessToken, imgUrl);
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        } catch (cardErr) {
+                                                                            console.error('[C2D] Card delivery error (non-fatal):', cardErr.message);
+                                                                        }
+                                                                    }
+
                                                                     await DmAutoReplyLog.create({
                                                                         userId: igUserIdMapped,
                                                                         senderId: commentData.senderId,
                                                                         messageText: `[C2D] ${commentData.text}`,
                                                                         replyText: dmMessage,
+                                                                        replyType: (creatorAssets.length > 0) ? 'product_recommendation' : 'text',
                                                                         status: result.success ? 'sent' : 'failed',
                                                                         scheduledAt: new Date(),
                                                                         repliedAt: new Date()
@@ -1685,6 +1711,16 @@ async function processWebhookPayload(body) {
                             ).then(async (aiDecision) => {
                                 if (!aiDecision) return;
 
+                                // ==================== SAFETY GATE: Autonomous Mode Check ====================
+                                // If autonomousMode is OFF, force all actions to REQUIRE_APPROVAL
+                                // This prevents AI from sending DMs to brands without explicit creator consent
+                                const isAutonomous = dmSettings?.autonomousMode === true;
+                                if (!isAutonomous && aiDecision.action === 'REPLY') {
+                                    console.log(`[Webhook] 🛡️ SAFETY: autonomousMode is OFF — forcing REQUIRE_APPROVAL instead of auto-REPLY`);
+                                    aiDecision.action = 'REQUIRE_APPROVAL';
+                                    aiDecision.approvalSummary = aiDecision.approvalSummary || `AI wanted to reply: "${aiDecision.replyText}"`;
+                                }
+
                                 if (aiDecision.action === 'REPLY' && aiDecision.replyText && tokenData?.accessToken) {
                                     console.log(`[Webhook] 🤖 AI chose to REPLY: "${aiDecision.replyText}"`);
                                     
@@ -1709,13 +1745,17 @@ async function processWebhookPayload(body) {
                                         }
                                     );
                                 } else if (aiDecision.action === 'REQUIRE_APPROVAL') {
-                                    console.log(`[Webhook] 🤖 AI requires APPROVAL for deal: ${aiDecision.approvalSummary}`);
+                                    console.log(`[Webhook] 🤖 AI requires APPROVAL for deal: ${aiDecision.brandName || 'Unknown'}`);
                                     
+                                    // ==================== LEAK FIX: Store replyText in draftReply, NOT approvalSummary ====================
+                                    // draftReply = what gets sent to the brand when creator clicks "Approve"
+                                    // approvalSummary = internal 15-rule checklist for creator preview only
                                     await Conversation.findOneAndUpdate(
                                         { conversationId },
                                         { 
                                             "negotiationData.status": 'drafted',
-                                            "negotiationData.draftReply": aiDecision.approvalSummary,
+                                            "negotiationData.draftReply": aiDecision.replyText || 'Draft pending review',
+                                            "negotiationData.approvalSummary": aiDecision.approvalSummary || '',
                                             "negotiationData.suggestedRate": aiDecision.suggestedRate,
                                             "negotiationData.brandName": aiDecision.brandName,
                                             "negotiationData.metrics.requestedDeliverables": aiDecision.deliverables
@@ -1735,7 +1775,7 @@ async function processWebhookPayload(body) {
                                 
                                 const fanPersona = await CreatorPersona.findOne({ userId: igUserIdMapped }).lean();
                                 const fanTokenData = await Token.findOne({ userId: igUserIdMapped }).lean();
-                                const creatorAssets = await CreatorAsset.find({ userId: igUserIdMapped, status: 'active' }).lean(); // [FIX] Omni-Router Phase 3
+                                const creatorAssets = await CreatorAsset.find({ userId: igUserIdMapped, isActive: true }).lean(); // [FIX] Schema field corrected
                                 
                                 if (fanTokenData && fanTokenData.accessToken) {
                                     // Get recent conversation history for context
@@ -1745,29 +1785,85 @@ async function processWebhookPayload(body) {
                                         text: h.text
                                     }));
 
-                                    inboxTriageService.generateFanReply(
-                                        messageData.text,
-                                        priorityTag,
-                                        fanPersona,
-                                        fanHistory,
-                                        creatorAssets // [FIX] Inject Assets to Close Sales
-                                    ).then(async (fanReplyText) => {
-                                        if (!fanReplyText) return;
-                                        
-                                        console.log(`[Webhook] 🎯 Fan Reply: "${fanReplyText}"`);
-                                        await sendDirectMessage(igUserId, senderId, fanReplyText, fanTokenData.accessToken);
-                                        
-                                        await DmAutoReplyLog.create({
-                                            userId: igUserIdMapped,
-                                            senderId: senderId,
-                                            messageText: messageData.text,
-                                            replyText: fanReplyText,
-                                            status: 'sent',
-                                            action: 'fan_engagement',
-                                            scheduledAt: new Date(),
-                                            repliedAt: new Date()
-                                        });
-                                    }).catch(err => console.error('[Webhook] Fan Reply Error:', err.message));
+                                    // ==================== PRODUCT INTENT DETECTION + NATIVE CARD DELIVERY ====================
+                                    // Check if the fan is asking about a specific product before falling back to casual reply
+                                    let fanProductHandled = false;
+                                    if (creatorAssets.length > 0) {
+                                        try {
+                                            const fanMatchResult = await aiService.matchCreatorAssets(messageData.text, creatorAssets);
+                                            if (!fanMatchResult.isGenericMessage && fanMatchResult.matchedAssets.length > 0) {
+                                                console.log(`[Webhook] 🎯 Fan has PRODUCT INTENT — ${fanMatchResult.matchedAssets.length} assets matched`);
+                                                fanProductHandled = true;
+
+                                                // Generate a smart product reply
+                                                const fanDmReply = await aiService.generateSmartDMReply(
+                                                    igUserIdMapped,
+                                                    messageData.text,
+                                                    'there',
+                                                    fanMatchResult.matchedAssets,
+                                                    false, // not generic
+                                                    [], // no custom instructions for fan flow
+                                                    fanMatchResult.isUnavailableRequest
+                                                );
+
+                                                // Step 1: Send text reply
+                                                await sendDirectMessage(igUserId, senderId, fanDmReply.text, fanTokenData.accessToken);
+
+                                                // Step 2: Send native rich cards
+                                                await new Promise(resolve => setTimeout(resolve, 1500));
+                                                const fanCardResult = await sendGenericTemplate(igUserIdMapped, senderId, fanMatchResult.matchedAssets, fanTokenData.accessToken);
+                                                if (!fanCardResult.success) {
+                                                    console.error('[Webhook] Fan card delivery failed, falling back to images...');
+                                                    const fanImages = fanMatchResult.matchedAssets.filter(a => a.imageUrl).map(a => a.imageUrl);
+                                                    for (const imgUrl of fanImages) {
+                                                        await new Promise(resolve => setTimeout(resolve, 1500));
+                                                        await sendDirectMessage(igUserIdMapped, senderId, '', fanTokenData.accessToken, imgUrl);
+                                                    }
+                                                }
+
+                                                await DmAutoReplyLog.create({
+                                                    userId: igUserIdMapped,
+                                                    senderId: senderId,
+                                                    messageText: messageData.text,
+                                                    replyText: fanDmReply.text,
+                                                    replyType: 'product_recommendation',
+                                                    assetsShared: fanDmReply.recommendedAssets,
+                                                    status: 'sent',
+                                                    scheduledAt: new Date(),
+                                                    repliedAt: new Date()
+                                                });
+                                            }
+                                        } catch (matchErr) {
+                                            console.error('[Webhook] Fan product intent detection failed (non-fatal):', matchErr.message);
+                                        }
+                                    }
+
+                                    // Fallback: Generic fan reply (no specific product intent detected)
+                                    if (!fanProductHandled) {
+                                        inboxTriageService.generateFanReply(
+                                            messageData.text,
+                                            priorityTag,
+                                            fanPersona,
+                                            fanHistory,
+                                            creatorAssets
+                                        ).then(async (fanReplyText) => {
+                                            if (!fanReplyText) return;
+                                            
+                                            console.log(`[Webhook] 🎯 Fan Reply: "${fanReplyText}"`);
+                                            await sendDirectMessage(igUserId, senderId, fanReplyText, fanTokenData.accessToken);
+                                            
+                                            await DmAutoReplyLog.create({
+                                                userId: igUserIdMapped,
+                                                senderId: senderId,
+                                                messageText: messageData.text,
+                                                replyText: fanReplyText,
+                                                status: 'sent',
+                                                action: 'fan_engagement',
+                                                scheduledAt: new Date(),
+                                                repliedAt: new Date()
+                                            });
+                                        }).catch(err => console.error('[Webhook] Fan Reply Error:', err.message));
+                                    }
                                 }
                             }
                         }

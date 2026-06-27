@@ -1,5 +1,5 @@
 const { generateContentWithFallback } = require('./geminiClient');
-const { parseCleanReply } = require('./aiService');
+const { parseCleanReply, extractJson } = require('./aiService');
 
 /**
  * Categorize an incoming DM into predefined priority tags
@@ -275,9 +275,13 @@ Example: <REPLY>{"strategicAnalysis": "...", "action": "REPLY", "replyText": "..
 
         const result = await generateContentWithFallback(prompt);
         let rawResponse = result.response.text();
-        let responseText = parseCleanReply(rawResponse);
 
-        return JSON.parse(responseText);
+        const parsed = extractJson(rawResponse);
+        if (!parsed) {
+            console.error('[Inbox Triage] Failed to extract JSON from autonomous negotiation response');
+            return null;
+        }
+        return parsed;
     } catch (error) {
         console.error('[Inbox Triage] Error in autonomous negotiation:', error.message);
         return null;

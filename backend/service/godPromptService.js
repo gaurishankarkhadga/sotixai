@@ -1,6 +1,7 @@
 const { generateContentWithFallback } = require('./geminiClient');
 const { parseCleanReply } = require('./aiService');
-const { CreatorPersona, DmAutoReplySetting, CreatorAsset } = require('../model/Instaautomation');
+const { CreatorPersona, DmAutoReplySetting } = require('../model/Instaautomation');
+const CreatorAsset = require('../model/CreatorAsset');
 
 /**
  * Parses a single "God Prompt" from a creator and automatically extracts and seeds
@@ -102,7 +103,7 @@ Return ONLY a valid JSON object exactly matching this structure. No markdown wra
                     price: config.asset.price || 'Free',
                     url: config.asset.url,
                     description: config.asset.description || '',
-                    status: 'active'
+                    isActive: true
                 },
                 { upsert: true, new: true }
             );

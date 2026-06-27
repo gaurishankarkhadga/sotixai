@@ -230,6 +230,24 @@ cron.schedule('*/5 * * * *', async () => {
   }
 });
 
+// ==================== RENDER KEEP-AWAKE CRON ====================
+// Render free tier spins down after 15 minutes of inactivity.
+// Pings the health endpoint every 14 minutes.
+cron.schedule('*/14 * * * *', async () => {
+  if (process.env.NODE_ENV === 'production' && process.env.BACKEND_URL) {
+    try {
+      console.log(`[Cron:Wake] Pinging ${process.env.BACKEND_URL}/api/health to keep Render awake...`);
+      const res = await axios.get(`${process.env.BACKEND_URL}/api/health`);
+      if (res.data && res.data.status === 'ok') {
+         console.log('[Cron:Wake] Service is awake.');
+      }
+    } catch (err) {
+      console.error('[Cron:Wake] Self-ping failed:', err.message);
+    }
+  }
+});
+
+
 // ==================== START SERVER ====================
 const http = require('http');
 const { initSocket } = require('./service/socketService');

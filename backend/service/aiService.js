@@ -48,6 +48,52 @@ function parseCleanReply(text) {
     return text.trim().replace(/^["']|["']$/g, '');
 }
 
+/**
+ * Robust JSON extractor for structured AI responses.
+ * Tries multiple strategies to extract valid JSON:
+ * 1. <REPLY> tags (preferred)
+ * 2. Outermost curly braces { ... }
+ * 3. cleanJsonString fallback
+ * Returns parsed object or null on failure.
+ */
+function extractJson(text) {
+    if (!text) return null;
+
+    // Strategy 1: Extract from <REPLY> tags (last match wins)
+    const replyMatches = [...text.matchAll(/<REPLY>([\s\S]*?)<\/REPLY>/gi)];
+    if (replyMatches.length > 0) {
+        const tagContent = replyMatches[replyMatches.length - 1][1].trim();
+        try {
+            return JSON.parse(tagContent);
+        } catch (e) {
+            console.warn('[extractJson] <REPLY> tag content was not valid JSON, trying inner braces...');
+            // Tag content might have extra text around the JSON
+            const braceMatch = tagContent.match(/\{[\s\S]*\}/);
+            if (braceMatch) {
+                try { return JSON.parse(braceMatch[0]); } catch (_) { /* fall through */ }
+            }
+        }
+    }
+
+    // Strategy 2: Find outermost { ... } in full text
+    const braceMatch = text.match(/\{[\s\S]*\}/);
+    if (braceMatch) {
+        try {
+            return JSON.parse(braceMatch[0]);
+        } catch (e) {
+            console.warn('[extractJson] Outermost braces parse failed:', e.message);
+        }
+    }
+
+    // Strategy 3: cleanJsonString fallback
+    try {
+        return JSON.parse(cleanJsonString(text));
+    } catch (e) {
+        console.error('[extractJson] All parse strategies failed for input:', text.substring(0, 200));
+        return null;
+    }
+}
+
 function delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -898,5 +944,6 @@ module.exports = {
     researchCreatorOnline,
     matchCreatorAssets,
     generateSmartDMReply,
-    parseCleanReply
+    parseCleanReply,
+    extractJson
 };
