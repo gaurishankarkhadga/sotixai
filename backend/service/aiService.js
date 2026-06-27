@@ -662,9 +662,9 @@ async function matchCreatorAssets(incomingText, creatorAssets) {
         let isUnavailableRequest = false;
 
         if (analysis.isGenericMessage) {
-            // Use default assets
-            matchedAssets = creatorAssets.filter(a => a.isDefault).sort((a, b) => b.priority - a.priority);
-            console.log(`[AI-Service] Generic DM detected. Using ${matchedAssets.length} default assets.`);
+            // NEVER forcefully inject default assets (like the gym link) if the user didn't ask for them.
+            matchedAssets = [];
+            console.log(`[AI-Service] Generic DM detected. No assets matched.`);
         } else {
             // Use AI-matched assets
             const matchedIds = analysis.matchedAssetIds || [];
@@ -863,12 +863,9 @@ async function generateSmartDMReply(userId, incomingText, senderName, matchedAss
             ${isGenericMessage ? '(Generic/casual message — naturally drop one link after responding)' : '(They want something specific — share the relevant items directly)'}
 
             HARD RULES:
-            1. MAX 1-2 short sentences. Be direct, helpful, and clear.
-            2. FOCUS ON THE TEXT: A rich card with the product link will be sent automatically after your message.
-            3. DO NOT include URLs in your text. Simply acknowledge their request and mention you are sending it.
-            4. Sound friendly and professional.
-            5. MATCH YOUR REAL REPLY STYLE shown above.
-            6. If they asked for something specific, acknowledge it directly.
+            1. MAX 1 SHORT SENTENCE. UNDER 10 WORDS. NO YAPPING.
+            2. DO NOT include URLs in your text. Just acknowledge the request.
+            3. Be friendly, clean, and extremely brief.
 
             SAFETY: If hateful/abusive → reply with just "❤️" and NO assets will be sent.
             ALWAYS follow Creator's Custom Rules above if any exist.
