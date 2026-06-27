@@ -808,12 +808,11 @@ async function generateSmartDMReply(userId, incomingText, senderName, matchedAss
             - Any sentence starting with "I" followed by a polite verb
 
             HOW TO SOUND HUMAN:
-            - Type like you're texting — abbreviations, slang, lowercase all OK
-            - Be SPECIFIC to what they said — generic replies = AI
-            - Keep it SHORT — ${persona?.averageReplyLength ? `under ${persona.averageReplyLength} chars` : 'under 50 chars'}
-            - Use YOUR slang patterns: ${(persona?.slangPatterns || []).join(', ') || 'haha, ikr, fr, ngl, lol, tysm'}
-            - 1 emoji max, only if it's YOUR style
-            - NO hashtags, NO exclamation spam (!!!), NO corporate tone
+            - Type like you're texting — keep it conversational and direct.
+            - Be SPECIFIC to what they said — generic replies = AI.
+            - Keep it SHORT — ${persona?.averageReplyLength ? `under ${persona.averageReplyLength} chars` : 'under 60 chars'}
+            - 1 emoji max, only if it fits the context naturally.
+            - NO hashtags, NO corporate robot tone. Just be a helpful human.
         `;
 
         let prompt;
@@ -863,12 +862,12 @@ async function generateSmartDMReply(userId, incomingText, senderName, matchedAss
             ${isGenericMessage ? '(Generic/casual message — naturally drop one link after responding)' : '(They want something specific — share the relevant items directly)'}
 
             HARD RULES:
-            1. MAX 1 short sentence. Be direct, simple, and clean. NO buzzwords, NO garbage text.
+            1. MAX 1-2 short sentences. Be direct, helpful, and clear.
             2. FOCUS ON THE TEXT: A rich card with the product link will be sent automatically after your message.
-            3. DO NOT include URLs in your text. Just state you are sending the link. Example: "Here is the link you requested:"
-            4. Keep it extremely professional, clean, and simple. DO NOT use emojis.
-            5. MATCH YOUR REAL REPLY STYLE shown above — same length, same tone.
-            6. If they asked for something specific, acknowledge it simply.
+            3. DO NOT include URLs in your text. Simply acknowledge their request and mention you are sending it.
+            4. Sound friendly and professional.
+            5. MATCH YOUR REAL REPLY STYLE shown above.
+            6. If they asked for something specific, acknowledge it directly.
 
             SAFETY: If hateful/abusive → reply with just "❤️" and NO assets will be sent.
             ALWAYS follow Creator's Custom Rules above if any exist.
