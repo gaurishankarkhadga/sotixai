@@ -1456,8 +1456,8 @@ async function processWebhookPayload(body) {
                                                                     // Match assets by intent
                                                                     const matchResult = await aiService.matchCreatorAssets(commentData.text, creatorAssets);
                                                                     
-                                                                    // Generate AI DM reply using matched assets (or fallback assets)
-                                                                    const assetsToShare = matchResult.matchedAssets.length > 0 ? matchResult.matchedAssets : creatorAssets.slice(0, 3);
+                                                                    // Generate AI DM reply using matched assets
+                                                                    const assetsToShare = matchResult.matchedAssets;
                                                                     const dmReply = await aiService.generateSmartDMReply(
                                                                         igUserIdMapped, 
                                                                         commentData.text, 
@@ -1484,14 +1484,14 @@ async function processWebhookPayload(body) {
                                                                     let assetsToShare = [];
                                                                     try {
                                                                         const c2dMatchResult = await aiService.matchCreatorAssets(commentData.text, creatorAssets);
-                                                                        assetsToShare = c2dMatchResult.matchedAssets.length > 0 ? c2dMatchResult.matchedAssets : creatorAssets.slice(0, 3);
+                                                                        assetsToShare = c2dMatchResult.matchedAssets;
                                                                     } catch (err) {
-                                                                        assetsToShare = creatorAssets.slice(0, 3);
+                                                                        assetsToShare = [];
                                                                     }
                                                                     
                                                                     if (assetsToShare.length > 0) {
                                                                         const appendedLinks = assetsToShare.map(a => 
-                                                                            `\n✨ ${a.title.toUpperCase()}\n${a.description ? a.description.substring(0, 50) + '...\n' : ''}👇 Click the link below:\n🔗 ${a.url}`
+                                                                            `\n${a.title}:\n${a.url}`
                                                                         ).join('\n');
                                                                         
                                                                         // Check if AI didn't already include the links
