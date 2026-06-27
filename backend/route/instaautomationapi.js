@@ -1490,13 +1490,13 @@ async function processWebhookPayload(body) {
                                                                             if (cardsToSend.length > 0) {
                                                                                 await new Promise(resolve => setTimeout(resolve, 1500));
                                                                                 console.log(`[C2D] Sending ${cardsToSend.length} assets as native rich cards...`);
-                                                                                const cardResult = await sendGenericTemplate(igUserIdMapped, commentData.senderId, cardsToSend, tokenData.accessToken);
+                                                                                const cardResult = await sendGenericTemplate(igUserId, commentData.senderId, cardsToSend, tokenData.accessToken);
                                                                                 if (!cardResult.success) {
                                                                                     console.error('[C2D] Rich card delivery failed, falling back to images...');
                                                                                     const c2dImages = cardsToSend.filter(a => a.imageUrl).map(a => a.imageUrl);
                                                                                     for (const imgUrl of c2dImages) {
                                                                                         await new Promise(resolve => setTimeout(resolve, 1500));
-                                                                                        await sendDirectMessage(igUserIdMapped, commentData.senderId, '', tokenData.accessToken, imgUrl);
+                                                                                        await sendDirectMessage(igUserId, commentData.senderId, '', tokenData.accessToken, imgUrl);
                                                                                     }
                                                                                 }
                                                                             }
@@ -1811,13 +1811,13 @@ async function processWebhookPayload(body) {
 
                                                 // Step 2: Send native rich cards
                                                 await new Promise(resolve => setTimeout(resolve, 1500));
-                                                const fanCardResult = await sendGenericTemplate(igUserIdMapped, senderId, fanMatchResult.matchedAssets, fanTokenData.accessToken);
+                                                const fanCardResult = await sendGenericTemplate(igUserId, senderId, fanMatchResult.matchedAssets, fanTokenData.accessToken);
                                                 if (!fanCardResult.success) {
                                                     console.error('[Webhook] Fan card delivery failed, falling back to images...');
                                                     const fanImages = fanMatchResult.matchedAssets.filter(a => a.imageUrl).map(a => a.imageUrl);
                                                     for (const imgUrl of fanImages) {
                                                         await new Promise(resolve => setTimeout(resolve, 1500));
-                                                        await sendDirectMessage(igUserIdMapped, senderId, '', fanTokenData.accessToken, imgUrl);
+                                                        await sendDirectMessage(igUserId, senderId, '', fanTokenData.accessToken, imgUrl);
                                                     }
                                                 }
 
