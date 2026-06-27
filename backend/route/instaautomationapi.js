@@ -67,21 +67,36 @@ function verifyWebhookSignature(req) {
         return true;
     }
 
-    const expectedSignature = 'sha256=' +
-        crypto.createHmac('sha256', INSTAGRAM_CONFIG.appSecret)
-            .update(req.rawBody)
-            .digest('hex');
-
-    const isValid = crypto.timingSafeEqual(
-        Buffer.from(signature),
-        Buffer.from(expectedSignature)
-    );
-
-    if (!isValid) {
-        console.error('[Webhook] SIGNATURE MISMATCH - possible spoofed request');
+    if (!INSTAGRAM_CONFIG.appSecret) {
+        console.warn('[Webhook] INSTAGRAM_APP_SECRET is not configured. Skipping verification for testing.');
+        return true;
     }
 
-    return isValid;
+    try {
+        const expectedSignature = 'sha256=' +
+            crypto.createHmac('sha256', INSTAGRAM_CONFIG.appSecret)
+                .update(req.rawBody)
+                .digest('hex');
+
+        const sigBuffer = Buffer.from(signature);
+        const expectedBuffer = Buffer.from(expectedSignature);
+
+        if (sigBuffer.length !== expectedBuffer.length) {
+            console.error('[Webhook] SIGNATURE LENGTH MISMATCH - possible spoofed request');
+            return false;
+        }
+
+        const isValid = crypto.timingSafeEqual(sigBuffer, expectedBuffer);
+
+        if (!isValid) {
+            console.error('[Webhook] SIGNATURE MISMATCH - possible spoofed request');
+        }
+
+        return isValid;
+    } catch (err) {
+        console.error('[Webhook] Signature verification error:', err.message);
+        return false;
+    }
 }
 
 
@@ -987,6 +1002,7 @@ router.get('/callback', async (req, res) => {
             userId: userIdStr,
             accessToken: longLivedToken,
             expiresIn,
+            expiresAt: new Date(Date.now() + expiresIn * 1000),
             createdAt: new Date()
         };
         
@@ -2727,6 +2743,12 @@ router.post('/data-deletion', async (req, res) => {
 });
 
 // ==================== DEBUG ROUTES ====================
+router.use('/debug', (req, res, next) => {
+    if (process.env.NODE_ENV === 'production') {
+        return res.status(403).json({ success: false, error: 'Debug routes disabled in production' });
+    }
+    next();
+});
 
 // Route: Debug Status
 router.get('/debug/status', async (req, res) => {

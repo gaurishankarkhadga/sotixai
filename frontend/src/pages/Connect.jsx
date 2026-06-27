@@ -222,23 +222,7 @@ function Connect() {
                                     <span className="premium-shine-sweep"></span>
                                 </button>
 
-                                {/* DEV ONLY: Admin bypass button */}
-                                <div className="admin-divider">
-                                    <span className="admin-divider-line"></span>
-                                    <span className="admin-divider-text">DEV MODE</span>
-                                    <span className="admin-divider-line"></span>
-                                </div>
-                                <button
-                                    className="btn-premium admin-premium"
-                                    onClick={handleAdminAccess}
-                                >
-                                    <div className="btn-content">
-                                        <Terminal size={24} className="btn-icon" />
-                                        <span>Admin Access</span>
-                                    </div>
-                                    <ChevronRight size={20} className="btn-arrow" />
-                                    <span className="premium-shine-sweep"></span>
-                                </button>
+
                             </div>
                             
                             <div className="security-note expansive-note">
