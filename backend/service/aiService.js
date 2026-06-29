@@ -725,7 +725,8 @@ async function matchCreatorAssets(incomingText, creatorAssets, chatHistory = [])
 
         Rules:
         - If generic → return empty matchedAssetIds and unavailableAssetIds
-        - If specific → return up to 5 most relevant asset IDs, sorted by relevance
+        - If specific → act like a high-end salesman. NEVER dump all your products at once. Curate and return ONLY the 1 or 2 most highly relevant asset IDs. Only return more if they specifically requested multiple distinct items by name.
+        - SALESMAN BEHAVIOR: Do not overwhelm the user with links/cards. If they ask a general question ("what do you sell?", "what is the course?"), just converse with them (set shouldSendCards: false) and only match 1 relevant asset to talk about.
         - Match by DEEP MEANING AND VIBE. Users ask for products in 50+ ways (e.g., "link plz", "send it", "where to buy", "how much?", "hook me up", "I need that", "flow", "protein"). 
         - If they mention ANYTHING remotely related to a product, or just ask for a "link", it is SPECIFIC intent. Match it!
         - MULTI-INTENT: "Give me your course AND the preset pack" = match BOTH assets
