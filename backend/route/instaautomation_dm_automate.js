@@ -3,12 +3,12 @@ const {
     Message,
     Conversation,
     DmAutoReplySetting,
-    CreatorPersona,
     Token,
     BrainAnalytics,
     DmAutoReplyLog
 } = require('../model/Instaautomation');
 const CreatorAsset = require('../model/CreatorAsset');
+const CreatorPersona = require('../model/CreatorPersona');
 const axios = require('axios');
 const aiService = require('../service/aiService');
 const inboxTriageService = require('../service/inboxTriageService');
