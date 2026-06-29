@@ -57,17 +57,37 @@ function triggerQueue(processEventFunction) {
  * Helper to lock a conversation to prevent double-texting on rapid-fire messages.
  * Returns true if locked successfully, false if it's already locked.
  */
-async function acquireConversationLock(conversationId, lockDurationSeconds = 5) {
+async function acquireConversationLock(conversationId, lockDurationSeconds = 5, initialData = null) {
     try {
         const now = new Date();
         const lockedUntil = new Date(now.getTime() + lockDurationSeconds * 1000);
         
+        // Step 1: If it's a brand new conversation, try to create it with the lock already applied
+        if (initialData) {
+            const exists = await Conversation.findOne({ conversationId });
+            if (!exists) {
+                try {
+                    await Conversation.create({
+                        ...initialData,
+                        conversationId,
+                        lockedUntil
+                    });
+                    return true; // Successfully created and locked
+                } catch (createErr) {
+                    // If it fails (e.g. duplicate key), it means another concurrent request just created it.
+                    // We fall through and try to grab the lock normally below.
+                }
+            }
+        }
+        
+        // Step 2: Grab lock on existing conversation
         const conv = await Conversation.findOneAndUpdate(
             { 
                 conversationId: conversationId,
                 $or: [
                     { lockedUntil: null },
-                    { lockedUntil: { $lte: now } }
+                    { lockedUntil: { $lte: now } },
+                    { lockedUntil: { $exists: false } }
                 ]
             },
             { lockedUntil: lockedUntil },

@@ -66,7 +66,13 @@ async function processDirectMessage(event, igUserId, helpers) {
     const conversationId = `${senderId}_${recipientId}`;
     
     // Conversation Locking
-    const lockAcquired = await acquireConversationLock(conversationId, 5);
+    // Pass initialData so first-time DMs can instantly create a conversation without deadlocking
+    const lockAcquired = await acquireConversationLock(conversationId, 5, {
+        userId: igUserIdMapped,
+        senderId,
+        recipientId,
+        unreadCount: 0
+    });
     if (!lockAcquired) {
         console.log(`[Webhook] Conversation ${conversationId} is currently locked. Batching rapid message.`);
         return;
