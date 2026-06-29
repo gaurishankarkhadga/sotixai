@@ -322,6 +322,67 @@ async function analyzeProfile(userId, accessToken) {
  * @param {Array} customInstructions - Specific rules or messages to insert securely
  * @returns {Promise<string>} - The generated reply text
  */
+/**
+ * Generates a highly dynamic, emoji-free comment reply strictly for Comment-to-DM workflows.
+ * Tells the fan to check their DMs in a creator-specific way.
+ */
+async function generateDynamicC2DReply(userId, incomingText, senderName, customFallbackInstruction) {
+    try {
+        const persona = await CreatorPersona.findOne({ userId });
+
+        let prompt;
+
+        if (persona) {
+            prompt = `
+            You are this Instagram creator answering a fan comment: @${senderName}: "${incomingText}"
+            You MUST tell them you sent the link/info to their DM. 
+            
+            YOUR STYLE RULES:
+            - Tone: ${persona.communicationStyle || 'casual'}, ${(persona.toneKeywords || []).join(', ') || 'friendly'}
+            - Length: Keep it under 40 characters (extremely short, like a quick comment reply).
+            - ${persona.lowercasePreference ? 'ALWAYS type in lowercase' : 'Normal capitalization'}.
+            - CRITICAL RULE 1: ABSOLUTELY NO EMOJIS. DO NOT USE ANY EMOJIS.
+            - CRITICAL RULE 2: MAKE IT DYNAMIC. Every time you are called, say it slightly differently so it doesn't look like a bot.
+            
+            ${customFallbackInstruction ? `CUSTOM CREATOR OVERRIDE (Use this vibe/instruction): "${customFallbackInstruction}"` : ''}
+            
+            Write the single sentence reply now (NO EMOJIS!):`;
+        } else {
+            prompt = `
+            You are a creator replying to an Instagram comment: @${senderName}: "${incomingText}"
+            Tell them briefly that you sent the info to their DM. 
+            
+            CRITICAL RULES:
+            1. Under 40 characters.
+            2. VERY casual human tone.
+            3. ABSOLUTELY NO EMOJIS. DO NOT USE EMOJIS.
+            4. Make it slightly unique/dynamic.
+            
+            ${customFallbackInstruction ? `CUSTOM CREATOR OVERRIDE (Use this vibe/instruction): "${customFallbackInstruction}"` : ''}
+            
+            Write the reply now (NO EMOJIS!):`;
+        }
+
+        const systemInstruction = "You are a human creator replying to comments. You never use emojis. You are dynamic and highly variable in your phrasing.";
+        
+        const response = await callGeminiAPI(prompt, systemInstruction);
+
+        if (response.error) {
+            console.error('[AI-Service] Dynamic C2D Reply error:', response.error);
+            throw new Error(response.error);
+        } else {
+            // Strip any accidental emojis using regex just in case
+            let cleanText = (response.text || '').trim();
+            cleanText = cleanText.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '');
+            return cleanText.trim() || 'sent it to your dms';
+        }
+
+    } catch (error) {
+        console.error('[AI-Service] Dynamic C2D Reply generation failed:', error.message);
+        throw error;
+    }
+}
+
 async function generateSmartReply(userId, incomingText, contextType, senderName, customInstructions = []) {
     try {
         const persona = await CreatorPersona.findOne({ userId });
@@ -952,6 +1013,8 @@ module.exports = {
     analyzeComment,
     researchCreatorOnline,
     matchCreatorAssets,
+    generateDynamicC2DReply,
+    generateSmartReply,
     generateSmartDMReply,
     parseCleanReply,
     extractJson
