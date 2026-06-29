@@ -1495,48 +1495,34 @@ async function processWebhookPayload(body) {
                                                                         isUnavailableRequest = false;
                                                                     }
 
-                                                                    if (currentC2d.useAssets !== false && assetsToShare.length > 0) {
-                                                                        // ==================== NATIVE RICH CARDS (Latest API) ====================
-                                                                        console.log('[C2D] Sending native rich cards (Generic Template) as Private Reply.');
-                                                                        const result = await sendGenericTemplate(igUserId, { comment_id: commentData.commentId }, assetsToShare, tokenData.accessToken);
+                                                                    // ==================== AI TEXT WITH IN-TEXT ASSETS ====================
+                                                                    // NATIVE RICH CARDS FAIL ON PRIVATE REPLY (Instagram restriction)
+                                                                    // So we format a beautiful text message with the links!
+                                                                    const dmReply = await aiService.generateSmartDMReply(
+                                                                        igUserIdMapped,
+                                                                        commentData.text,
+                                                                        commentData.username,
+                                                                        assetsToShare,
+                                                                        isGenericMessage,
+                                                                        customInstructions,
+                                                                        isUnavailableRequest,
+                                                                        true // isPrivateReply = true
+                                                                    );
+                                                                    const textReply = dmReply.text;
+
+                                                                    if (textReply) {
+                                                                        const result = await sendPrivateReply(igUserId, commentData.commentId, textReply, tokenData.accessToken);
 
                                                                         await DmAutoReplyLog.create({
                                                                             userId: igUserIdMapped,
                                                                             senderId: commentData.senderId,
                                                                             messageText: `[C2D] ${commentData.text}`,
-                                                                            replyText: `[Rich Cards Sent: ${assetsToShare.map(a => a.title).join(', ')}]`,
-                                                                            replyType: 'product_recommendation',
+                                                                            replyText: textReply,
+                                                                            replyType: (assetsToShare.length > 0) ? 'text_with_link' : 'text',
                                                                             status: result.success ? 'sent' : 'failed',
                                                                             scheduledAt: new Date(),
                                                                             repliedAt: new Date()
                                                                         });
-                                                                    } else {
-                                                                        // ==================== AI TEXT ONLY ====================
-                                                                        const dmReply = await aiService.generateSmartDMReply(
-                                                                            igUserIdMapped,
-                                                                            commentData.text,
-                                                                            commentData.username,
-                                                                            assetsToShare,
-                                                                            isGenericMessage,
-                                                                            customInstructions,
-                                                                            isUnavailableRequest
-                                                                        );
-                                                                        const textReply = dmReply.text;
-
-                                                                        if (textReply) {
-                                                                            const result = await sendPrivateReply(igUserId, commentData.commentId, textReply, tokenData.accessToken);
-
-                                                                            await DmAutoReplyLog.create({
-                                                                                userId: igUserIdMapped,
-                                                                                senderId: commentData.senderId,
-                                                                                messageText: `[C2D] ${commentData.text}`,
-                                                                                replyText: textReply,
-                                                                                replyType: 'text',
-                                                                                status: result.success ? 'sent' : 'failed',
-                                                                                scheduledAt: new Date(),
-                                                                                repliedAt: new Date()
-                                                                            });
-                                                                        }
                                                                     }
                                                                 } catch (aiErr) {
                                                                     console.error('[C2D] AI DM Reply failed:', aiErr.message);

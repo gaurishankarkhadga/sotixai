@@ -719,9 +719,10 @@ async function matchCreatorAssets(incomingText, creatorAssets) {
  * @param {string} senderName - Username of the DM sender
  * @param {Array} matchedAssets - Assets matched by intent or defaults
  * @param {boolean} isGenericMessage - Whether the message is generic
+ * @param {boolean} isPrivateReply - Whether this is a private reply to a comment (requires links in text)
  * @returns {Promise<{text: string, recommendedAssets: Array, replyType: string}>}
  */
-async function generateSmartDMReply(userId, incomingText, senderName, matchedAssets, isGenericMessage, customInstructions = [], isUnavailableRequest = false) {
+async function generateSmartDMReply(userId, incomingText, senderName, matchedAssets, isGenericMessage = false, customInstructions = [], isUnavailableRequest = false, isPrivateReply = false) {
     try {
         const persona = await CreatorPersona.findOne({ userId });
 
@@ -876,7 +877,7 @@ async function generateSmartDMReply(userId, incomingText, senderName, matchedAss
 
             HARD RULES:
             1. MAX 1 SHORT SENTENCE. UNDER 10 WORDS. NO YAPPING.
-            2. DO NOT include URLs in your text. Just acknowledge the request.
+            2. ${isPrivateReply ? 'CRITICAL: YOU MUST INCLUDE THE EXACT PRODUCT URL IN YOUR TEXT. Instagram blocks product cards here, so the link MUST be in your message.' : 'DO NOT include URLs in your text. Just acknowledge the request.'}
             3. Be friendly, clean, and extremely brief.
 
             SAFETY: If hateful/abusive → reply with just "❤️" and NO assets will be sent.
