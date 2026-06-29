@@ -912,8 +912,8 @@ async function generateSmartDMReply(userId, incomingText, senderName, matchedAss
 
             HARD RULES:
             1. Act like a helpful but casual creator.
-            2. Tell them you don't have that specific thing right now.
-            3. BE A GOOD SALESMAN: Pivot the conversation smoothly. Ask them what exactly they are trying to achieve or say you have other things that might help. Keep them engaged!
+            2. Tell them EXACTLY: "this exact product is not available but I have similar to them if you need then I will show you" (but adapt it slightly to your specific tone/persona).
+            3. Do NOT send links. Wait for them to say "yes" to seeing the similar items.
             4. Keep it SHORT (max 1-2 sentences). Match your real reply tone exactly (seen above).
 
             SAFETY: If hateful → just "❤️". Never swear. ALWAYS follow Creator's Custom Rules above if any exist.
