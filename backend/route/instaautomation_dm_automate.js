@@ -210,11 +210,14 @@ async function processDirectMessage(event, igUserId, helpers) {
     }
 
     // ==================== FEATURE: SMART FAN ENGAGEMENT (PRODUCTS/ASSETS) ====================
-    if (priorityTag !== 'Collaboration' && priorityTag !== 'Untriaged' && priorityTag !== 'Spam') {
+    if (priorityTag !== 'Collaboration' && priorityTag !== 'Spam') {
         const dmSettingsForFan = await DmAutoReplySetting.findOne({ userId: igUserIdMapped }).lean();
         
-        if (dmSettingsForFan && dmSettingsForFan.inboxTriageEnabled) {
-            console.log(`[Webhook] 🎯 Smart Router: Fan detected (${priorityTag}). Generating creator reply...`);
+        const isStandardEnabled = dmSettingsForFan && dmSettingsForFan.enabled;
+        const isAutonomousEnabled = dmSettingsForFan && dmSettingsForFan.autonomousMode;
+
+        if (isStandardEnabled || isAutonomousEnabled) {
+            console.log(`[Webhook] 🎯 Smart Router: DM Auto-Reply active (Priority: ${priorityTag}). Generating creator reply...`);
             
             const fanPersona = await CreatorPersona.findOne({ userId: igUserIdMapped }).lean();
             const fanTokenData = await Token.findOne({ userId: igUserIdMapped }).lean();
