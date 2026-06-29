@@ -1329,6 +1329,12 @@ async function processWebhookPayload(body) {
 
                         console.log(`[Webhook] Comment from @${commentData.username}: "${commentData.text}"`);
 
+                        // Ignore comments/replies sent by the page itself to avoid loops and API errors
+                        if (commentData.senderId && String(commentData.senderId) === String(igUserId)) {
+                            console.log(`[Webhook] Skipping self-comment/reply by page (@${commentData.username})`);
+                            continue;
+                        }
+
                         // Check for viral tag (@mention of the user's username)
                         if (commentData.text.includes('@')) {
                             try {
