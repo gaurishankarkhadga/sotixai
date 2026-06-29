@@ -161,14 +161,9 @@ module.exports = {
                     updateData.message = dmMessage;
                 }
 
-                if (hours > 0) {
-                    updateData.timeLimitHours = hours;
-                    updateData.expiresAt = expiresAt;
-                }
-
-                if (maxComments > 0) {
-                    updateData.maxComments = maxComments;
-                }
+                updateData.timeLimitHours = hours;
+                updateData.expiresAt = expiresAt;
+                updateData.maxComments = maxComments;
 
                 await CommentToDmSetting.findOneAndUpdate(
                     { userId },
