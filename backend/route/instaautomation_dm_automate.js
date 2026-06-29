@@ -252,7 +252,8 @@ async function processDirectMessage(event, igUserId, helpers) {
                                 false, 
                                 [],
                                 fanMatchResult.isUnavailableRequest,
-                                recentFanHistory
+                                recentFanHistory,
+                                fanMatchResult.shouldSendCards
                             );
 
                             // Step 1: Send text reply (Conversational)
@@ -260,8 +261,8 @@ async function processDirectMessage(event, igUserId, helpers) {
                                 await sendDirectMessage(igUserId, senderId, fanDmReply.text, fanTokenData.accessToken);
                             }
 
-                            // Step 2: Send native rich cards ONLY if assets were actually matched
-                            if (fanMatchResult.matchedAssets.length > 0) {
+                            // Step 2: Send native rich cards ONLY if assets were actually matched AND shouldSendCards is true
+                            if (fanMatchResult.matchedAssets.length > 0 && fanMatchResult.shouldSendCards) {
                                 await new Promise(resolve => setTimeout(resolve, 1500));
                                 const fanCardResult = await sendGenericTemplate(igUserId, { id: senderId }, fanMatchResult.matchedAssets, fanTokenData.accessToken);
                                 

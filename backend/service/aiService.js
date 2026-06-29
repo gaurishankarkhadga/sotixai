@@ -709,10 +709,12 @@ async function matchCreatorAssets(incomingText, creatorAssets, chatHistory = [])
         4. If any matched asset has "isActive": false, return its ID in "unavailableAssetIds".
         5. If they ask for a specific product that is not in the library at all, or if the matched asset is inactive, set "isUnavailableRequest": true.
         6. IMPORTANT: The user may ask for MULTIPLE DIFFERENT products in a single message. Identify ALL relevant assets.
+        7. Decide shouldSendCards: Set to true ONLY IF the user explicitly asks for a link, wants to buy, or wants you to send the product (e.g., "send link", "how do i buy", "i want the course", "yes"). If they are just asking a general question about what you sell, what a product is, or chatting about the products, set shouldSendCards to false.
 
         Return ONLY this JSON (no markdown):
         {
             "isGenericMessage": true/false,
+            "shouldSendCards": true/false,
             "matchedAssetIds": ["id1", "id2"],
             "unavailableAssetIds": ["id3"],
             "isUnavailableRequest": true/false,
@@ -768,13 +770,14 @@ async function matchCreatorAssets(incomingText, creatorAssets, chatHistory = [])
             matchedAssets,
             unavailableAssets,
             isGenericMessage: Boolean(analysis.isGenericMessage),
+            shouldSendCards: analysis.shouldSendCards !== false, // default true if undefined
             isUnavailableRequest,
             matchReason: analysis.matchReason || ''
         };
 
     } catch (error) {
         console.error('[AI-Service] Asset matching failed:', error.message);
-        return { matchedAssets: [], unavailableAssets: [], isGenericMessage: true, isUnavailableRequest: false, matchReason: 'error' };
+        return { matchedAssets: [], unavailableAssets: [], isGenericMessage: true, shouldSendCards: false, isUnavailableRequest: false, matchReason: 'error' };
     }
 }
 
@@ -792,7 +795,7 @@ async function matchCreatorAssets(incomingText, creatorAssets, chatHistory = [])
  * @param {boolean} isGenericMessage - Whether the message is generic
  * @returns {Promise<{text: string, recommendedAssets: Array, replyType: string}>}
  */
-async function generateSmartDMReply(userId, incomingText, senderName, matchedAssets, isGenericMessage, customInstructions = [], isUnavailableRequest = false, chatHistory = []) {
+async function generateSmartDMReply(userId, incomingText, senderName, matchedAssets, isGenericMessage, customInstructions = [], isUnavailableRequest = false, chatHistory = [], shouldSendCards = true) {
     try {
         const persona = await CreatorPersona.findOne({ userId });
 
@@ -950,7 +953,7 @@ async function generateSmartDMReply(userId, incomingText, senderName, matchedAss
 
             === THE DM ===
             @${senderName}: "${incomingText}"
-            ${isGenericMessage ? '(Generic/casual message — naturally drop one link after responding)' : '(They want something specific — share the relevant items directly)'}
+            ${!shouldSendCards ? '(They just asked a general question about products. Answer them conversationally. DO NOT say you are sending a link.)' : (isGenericMessage ? '(Generic/casual message — naturally drop one link after responding)' : '(They want something specific — share the relevant items directly. Say you are sending it below.)')}
 
             HARD RULES:
             1. MAX 1 SHORT SENTENCE. UNDER 10 WORDS. NO YAPPING.
@@ -963,7 +966,7 @@ async function generateSmartDMReply(userId, incomingText, senderName, matchedAss
             CONVENIENT ISOLATION:
             If you need to think about the response, do it OUTSIDE the tags first.
             You MUST put your final response inside <REPLY> tags.
-            Example: <REPLY>sending that link over now! check it out below 👇</REPLY>
+            Example: <REPLY>${!shouldSendCards ? 'I sell gym gear and workout courses! Let me know if you want the link.' : 'sending that link over now! check it out below 👇'}</REPLY>
             `;
 
         } else {
