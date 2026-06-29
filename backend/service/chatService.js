@@ -517,7 +517,7 @@ function formatIntentTitle(intent) {
 
 // ==================== MAIN PROCESS FUNCTION ====================
 async function processMessage(userId, message, token) {
-    const context = { userId, token };
+    const context = { userId, token, originalMessage: message };
 
     console.log(`\n[ChatService] ====== Processing: "${message}" (user: ${userId}) ======`);
 

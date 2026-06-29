@@ -2,7 +2,7 @@ const { CommentToDmSetting, Token } = require('../../model/Instaautomation');
 const CreatorAsset = require('../../model/CreatorAsset');
 const { fetchFilteredMedia } = require('../mediaUtils');
 const axios = require('axios');
-const { generateSmartReply } = require('../aiService');
+const { generateSmartReply, matchCreatorAssets } = require('../aiService');
 
 const GRAPH_BASE_URL = `${process.env.INSTAGRAM_GRAPH_API_BASE_URL || 'https://graph.instagram.com'}/v${process.env.INSTAGRAM_GRAPH_API_VERSION || '24.0'}`;
 
@@ -124,14 +124,67 @@ module.exports = {
                     verificationParts.push('⚠️ No token provided — some features may not work');
                 }
 
-                // Check assets
-                const assetCount = await CreatorAsset.countDocuments({ userId, isActive: true });
+                // Check assets and match with creator's original request
+                const allAssets = await CreatorAsset.find({ userId }).lean();
+                const activeAssets = allAssets.filter(a => a.isActive !== false);
+                const assetCount = activeAssets.length;
                 verification.assetsAvailable = assetCount > 0;
+
+                let assetConfirmationMessage = '';
                 if (useAssets) {
-                    verificationParts.push(assetCount > 0
-                        ? `✅ ${assetCount} asset${assetCount > 1 ? 's' : ''} ready to share`
-                        : '⚠️ No active assets — DM will use AI-generated reply instead'
-                    );
+                    if (allAssets.length > 0) {
+                        const creatorPrompt = context.originalMessage || '';
+                        let matchedInfo = null;
+
+                        try {
+                            const matchResult = await matchCreatorAssets(creatorPrompt, allAssets);
+                            // If a specific product was matched
+                            if (matchResult.matchedAssets && matchResult.matchedAssets.length > 0) {
+                                const matched = matchResult.matchedAssets[0];
+                                matchedInfo = {
+                                    title: matched.title,
+                                    type: matched.type,
+                                    url: matched.url,
+                                    price: matched.price,
+                                    isActive: true
+                                };
+                            } else if (matchResult.unavailableAssets && matchResult.unavailableAssets.length > 0) {
+                                const matched = matchResult.unavailableAssets[0];
+                                matchedInfo = {
+                                    title: matched.title,
+                                    type: matched.type,
+                                    url: matched.url,
+                                    price: matched.price,
+                                    isActive: false
+                                };
+                            }
+                        } catch (matchErr) {
+                            console.error('[C2D-Handler] Match activation message failed:', matchErr.message);
+                        }
+
+                        if (matchedInfo) {
+                            if (matchedInfo.isActive) {
+                                verificationParts.push(`✅ **Product Confirmed:** "${matchedInfo.title}" (${matchedInfo.type}) is active and will be sent in the DM!`);
+                                assetConfirmationMessage = `📦 **Matched Product:** "${matchedInfo.title}"\n🔗 **Link:** ${matchedInfo.url || 'No link'}\n💰 **Price:** ${matchedInfo.price || 'Free'}`;
+                                verification.assetsAvailable = true;
+                            } else {
+                                verificationParts.push(`⚠️ **Product Alert:** "${matchedInfo.title}" (${matchedInfo.type}) matches your request but is currently **INACTIVE/DISABLED**. Please activate it in your assets library so it can be delivered.`);
+                                assetConfirmationMessage = `⚠️ **Matched Product (INACTIVE):** "${matchedInfo.title}"\n🔗 **Link:** ${matchedInfo.url || 'No link'}\n💰 **Price:** ${matchedInfo.price || 'Free'}\n*(Note: Turn this asset ON in your assets library to enable delivery)*`;
+                                verification.assetsAvailable = false;
+                            }
+                        } else {
+                            if (assetCount > 0) {
+                                verificationParts.push(`✅ ${assetCount} active asset${assetCount > 1 ? 's' : ''} ready to share`);
+                                assetConfirmationMessage = `📦 **Product Flow:** Dynamic AI matching enabled. The system will automatically select the best of your ${assetCount} active products based on the commenter's request.`;
+                            } else {
+                                verificationParts.push('⚠️ No active assets — DMs will use AI-generated reply without products');
+                                assetConfirmationMessage = '⚠️ **Product Flow:** No active products or links found in your library. Please add assets so they can be delivered in DMs.';
+                            }
+                        }
+                    } else {
+                        verificationParts.push('⚠️ No assets exist in your library — DMs will use AI-generated reply without products');
+                        assetConfirmationMessage = '⚠️ **Product Flow:** No products found in your library. Please add assets so they can be delivered in DMs.';
+                    }
                 }
 
                 // ── AI-generate comment reply if not specified ──
@@ -202,6 +255,11 @@ module.exports = {
 
                 if (maxComments > 0) {
                     parts.push(`🔢 Max: ${maxComments} comments then auto-stop`);
+                }
+
+                if (assetConfirmationMessage) {
+                    parts.push('');
+                    parts.push(assetConfirmationMessage);
                 }
 
                 // Add verification status

@@ -609,7 +609,7 @@ async function researchCreatorOnline(userId, username) {
 async function matchCreatorAssets(incomingText, creatorAssets) {
     try {
         if (!creatorAssets || creatorAssets.length === 0) {
-            return { matchedAssets: [], isGenericMessage: true };
+            return { matchedAssets: [], unavailableAssets: [], isGenericMessage: true, isUnavailableRequest: false };
         }
 
         // Build asset catalog for AI
@@ -621,36 +621,42 @@ async function matchCreatorAssets(incomingText, creatorAssets) {
             description: a.description,
             tags: a.tags,
             price: a.price,
-            isDefault: a.isDefault
+            isDefault: a.isDefault,
+            isActive: a.isActive !== false
         }));
 
         const prompt = `
-        A fan sent this DM to a creator: "${incomingText}"
+        A user sent this message: "${incomingText}"
 
-        The creator has these assets available to share:
+        The creator has these assets in their library (some may be inactive/disabled):
         ${JSON.stringify(assetCatalog, null, 2)}
 
-        Analyze the fan's message and determine:
-        1. Is this a GENERIC message (hi, hello, hey, what's up, random chat) or does the fan have a SPECIFIC intent?
-        2. If specific intent — which assets are most relevant? Match by meaning, not just keywords.
-        3. IMPORTANT: The fan may ask for MULTIPLE DIFFERENT products in a single message. Identify ALL relevant assets.
+        Analyze the user's message and determine:
+        1. Is this a GENERIC message (hi, hello, hey, what's up, random chat) or does the user have a SPECIFIC intent?
+        2. If specific intent — which assets are most relevant? Match by meaning, title, tags, description, or url.
+        3. If any matched asset has "isActive": true, return its ID in "matchedAssetIds".
+        4. If any matched asset has "isActive": false, return its ID in "unavailableAssetIds".
+        5. If they ask for a specific product that is not in the library at all, or if the matched asset is inactive, set "isUnavailableRequest": true.
+        6. IMPORTANT: The user may ask for MULTIPLE DIFFERENT products in a single message. Identify ALL relevant assets.
 
         Return ONLY this JSON (no markdown):
         {
             "isGenericMessage": true/false,
-            "matchedAssetIds": ["id1", "id2", "id3"],
+            "matchedAssetIds": ["id1", "id2"],
+            "unavailableAssetIds": ["id3"],
+            "isUnavailableRequest": true/false,
             "matchReason": "why these assets match"
         }
 
         Rules:
-        - If generic → return empty matchedAssetIds (the system will use defaults)
+        - If generic → return empty matchedAssetIds and unavailableAssetIds
         - If specific → return up to 5 most relevant asset IDs, sorted by relevance
-        - Match by DEEP MEANING AND VIBE. Fans ask for products in 50+ ways (e.g., "link plz", "send it", "where to buy", "how much?", "hook me up", "I need that", "flow", "protein"). 
-        - If they mention ANYTHING remotely related to a product you have, or just ask for a "link", it is SPECIFIC intent. Match it!
+        - Match by DEEP MEANING AND VIBE. Users ask for products in 50+ ways (e.g., "link plz", "send it", "where to buy", "how much?", "hook me up", "I need that", "flow", "protein"). 
+        - If they mention ANYTHING remotely related to a product, or just ask for a "link", it is SPECIFIC intent. Match it!
         - MULTI-INTENT: "Give me your course AND the preset pack" = match BOTH assets
-        - "I want everything you have" = match ALL assets
         - Simple greetings/reactions ("wow", "nice", "hello", emoji-only) are GENERIC
         - ANY question about pricing, courses, links, workouts, presets, or products = SPECIFIC
+        - ACTIVATION COMMAND RULE: If the message is an activation/configuration command from the creator (e.g., "turn on comment to dm", "enable automation", "activate"), do NOT match a specific product unless they explicitly name or refer to that product or its type (e.g., "my course", "ebook", "gym guide"). If they just ask to enable or configure comment-to-dm generally, treat it as GENERIC (isGenericMessage: true) with no product matches.
         `;
 
         const result = await generateContentWithFallback(prompt);
@@ -659,29 +665,37 @@ async function matchCreatorAssets(incomingText, creatorAssets) {
         const analysis = JSON.parse(cleaned);
 
         let matchedAssets = [];
+        let unavailableAssets = [];
         let isUnavailableRequest = false;
 
         if (analysis.isGenericMessage) {
-            // NEVER forcefully inject default assets (like the gym link) if the user didn't ask for them.
             matchedAssets = [];
-            console.log(`[AI-Service] Generic DM detected. No assets matched.`);
+            console.log(`[AI-Service] Generic message/text detected. No assets matched.`);
         } else {
             // Use AI-matched assets
             const matchedIds = analysis.matchedAssetIds || [];
             matchedAssets = matchedIds
                 .map(id => creatorAssets.find(a => a._id.toString() === id))
                 .filter(Boolean);
+
+            const unavailableIds = analysis.unavailableAssetIds || [];
+            unavailableAssets = unavailableIds
+                .map(id => creatorAssets.find(a => a._id.toString() === id))
+                .filter(Boolean);
             
-            if (matchedAssets.length === 0) {
+            isUnavailableRequest = Boolean(analysis.isUnavailableRequest) || (unavailableAssets.length > 0 && matchedAssets.length === 0);
+
+            if (matchedAssets.length === 0 && unavailableAssets.length === 0) {
                 isUnavailableRequest = true;
-                console.log(`[AI-Service] Specific intent detected but no assets matched (unavailable request).`);
+                console.log(`[AI-Service] Specific intent detected but no active or inactive assets matched.`);
             } else {
-                console.log(`[AI-Service] Specific intent detected: "${analysis.matchReason}". Matched ${matchedAssets.length} assets.`);
+                console.log(`[AI-Service] Specific intent detected: "${analysis.matchReason}". Active matched: ${matchedAssets.length}, Inactive matched: ${unavailableAssets.length}`);
             }
         }
 
         return {
             matchedAssets,
+            unavailableAssets,
             isGenericMessage: Boolean(analysis.isGenericMessage),
             isUnavailableRequest,
             matchReason: analysis.matchReason || ''
@@ -690,8 +704,8 @@ async function matchCreatorAssets(incomingText, creatorAssets) {
     } catch (error) {
         console.error('[AI-Service] Asset matching failed:', error.message);
         // Fallback: return default assets
-        const defaults = creatorAssets.filter(a => a.isDefault);
-        return { matchedAssets: defaults, isGenericMessage: true, isUnavailableRequest: false, matchReason: 'fallback' };
+        const defaults = creatorAssets.filter(a => a.isDefault && a.isActive !== false);
+        return { matchedAssets: defaults, unavailableAssets: [], isGenericMessage: true, isUnavailableRequest: false, matchReason: 'fallback' };
     }
 }
 

@@ -1455,7 +1455,7 @@ async function processWebhookPayload(body) {
                                                             const currentC2d = await CommentToDmSetting.findOne({ userId: igUserIdMapped });
                                                             if (currentC2d && currentC2d.enabled) {
                                                                 let dmMessage = '';
-                                                                const creatorAssets = await CreatorAsset.find({ userId: igUserIdMapped, isActive: true }).lean();
+                                                                const creatorAssets = await CreatorAsset.find({ userId: igUserIdMapped }).lean();
                                                                 let customInstructions = [];
                                                                 if (c2dSettings.dmMessage) customInstructions.push(`CREATOR MESSAGE: "${c2dSettings.dmMessage}"`);
 
