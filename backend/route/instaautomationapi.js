@@ -1495,20 +1495,52 @@ async function processWebhookPayload(body) {
                                                                         isUnavailableRequest = false;
                                                                     }
 
-                                                                    // ==================== AI TEXT WITH IN-TEXT ASSETS ====================
-                                                                    // NATIVE RICH CARDS FAIL ON PRIVATE REPLY (Instagram restriction)
-                                                                    // So we format a beautiful text message with the links!
-                                                                    const dmReply = await aiService.generateSmartDMReply(
-                                                                        igUserIdMapped,
-                                                                        commentData.text,
-                                                                        commentData.username,
-                                                                        assetsToShare,
-                                                                        isGenericMessage,
-                                                                        customInstructions,
-                                                                        isUnavailableRequest,
-                                                                        true // isPrivateReply = true
-                                                                    );
-                                                                    const textReply = dmReply.text;
+                                                                    let textReply = "";
+                                                                    if (currentC2d.useAssets !== false && assetsToShare.length > 0) {
+                                                                        // ==================== STRICT CHECKOUT LAYOUT ====================
+                                                                        // Instagram unfurls links automatically. We format this exactly like 
+                                                                        // the rich card layout to trigger the image preview reliably without AI hallucination.
+                                                                        const assetLayouts = assetsToShare.map(asset => {
+                                                                            let priceTag = '';
+                                                                            if (asset.price) {
+                                                                                const cleanPrice = asset.price.toString().replace(/[^\d.]/g, '');
+                                                                                priceTag = `💰 Price: ₹${cleanPrice}\n`;
+                                                                            }
+                                                                            
+                                                                            let buttonTitle = 'Visit Link';
+                                                                            const type = (asset.type || 'product').toLowerCase();
+                                                                            const typeMap = {
+                                                                                product: 'Checkout', merch: 'Checkout', course: 'Enroll Now',
+                                                                                ebook: 'Enroll Now', affiliate_link: 'Buy Now', service: 'Book Now', link: 'Visit Link'
+                                                                            };
+                                                                            if (typeMap[type]) buttonTitle = typeMap[type];
+
+                                                                            const absoluteActionUrl = (asset.url && !asset.url.startsWith('http')) ? `https://${asset.url}` : (asset.url || 'https://sotix.ai');
+                                                                            const desc = asset.description ? `📝 ${asset.description}\n` : '';
+                                                                            
+                                                                            return `📦 ${asset.title}\n${priceTag}${desc}\n👇 ${buttonTitle} Here:\n🔗 ${absoluteActionUrl}`;
+                                                                        });
+
+                                                                        // Ensure we strictly send exactly what the creator specified
+                                                                        if (currentC2d.dmMessage) {
+                                                                            textReply = `${currentC2d.dmMessage}\n\n${assetLayouts.join('\n\n➖➖➖➖➖➖\n\n')}`;
+                                                                        } else {
+                                                                            textReply = assetLayouts.join('\n\n➖➖➖➖➖➖\n\n');
+                                                                        }
+                                                                    } else {
+                                                                        // Fallback for non-asset generic chats
+                                                                        const dmReply = await aiService.generateSmartDMReply(
+                                                                            igUserIdMapped,
+                                                                            commentData.text,
+                                                                            commentData.username,
+                                                                            assetsToShare,
+                                                                            isGenericMessage,
+                                                                            customInstructions,
+                                                                            isUnavailableRequest,
+                                                                            true // isPrivateReply = true
+                                                                        );
+                                                                        textReply = dmReply.text;
+                                                                    }
 
                                                                     if (textReply) {
                                                                         const result = await sendPrivateReply(igUserId, commentData.commentId, textReply, tokenData.accessToken);
