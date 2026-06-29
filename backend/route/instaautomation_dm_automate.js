@@ -1,12 +1,14 @@
 const mongoose = require('mongoose');
-const Message = require('../model/Message');
-const Conversation = require('../model/Conversation');
-const DmAutoReplySetting = require('../model/DmAutoReplySetting');
-const CreatorPersona = require('../model/CreatorPersona');
-const Token = require('../model/Token');
+const {
+    Message,
+    Conversation,
+    DmAutoReplySetting,
+    CreatorPersona,
+    Token,
+    BrainAnalytics,
+    DmAutoReplyLog
+} = require('../model/Instaautomation');
 const CreatorAsset = require('../model/CreatorAsset');
-const BrainAnalytics = require('../model/BrainAnalytics');
-const DmAutoReplyLog = require('../model/DmAutoReplyLog');
 const axios = require('axios');
 const aiService = require('../service/aiService');
 const inboxTriageService = require('../service/inboxTriageService');
