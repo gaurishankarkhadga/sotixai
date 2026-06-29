@@ -703,6 +703,8 @@ async function matchCreatorAssets(incomingText, creatorAssets, chatHistory = [])
         ${JSON.stringify(assetCatalog, null, 2)}
 
         Analyze the user's message IN THE CONTEXT of the recent chat history to determine:
+        (CRITICAL RULE: The chat history may contain unrelated random chatter. ONLY use the history to understand if the user is continuing a PRODUCT, COURSE, or LINK related conversation. If the history is just small talk, IGNORE the history and evaluate the current message on its own.)
+        
         1. Is this a GENERIC message (hi, hello, hey, what's up, random chat) or does the user have a SPECIFIC intent? (e.g. if the creator previously asked "want to see similar products?" and the user replies "yes", their intent is SPECIFIC to seeing similar products. In this case, match the most relevant active assets based on their original request in the history).
         2. If specific intent — which assets are most relevant? Match by meaning, title, tags, description, or url.
         3. If any matched asset has "isActive": true, return its ID in "matchedAssetIds".

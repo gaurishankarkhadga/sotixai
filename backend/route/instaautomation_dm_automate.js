@@ -227,15 +227,19 @@ async function processDirectMessage(event, igUserId, helpers) {
                 const fanConv = await Conversation.findOne({ conversationId }).lean();
                 const fanHistory = (fanConv?.negotiationData?.history || []).map(h => ({
                     role: h.action === 'sent' ? 'assistant' : 'user',
-                    text: h.text
+                    text: h.text,
+                    timestamp: h.timestamp || new Date()
                 }));
 
                 let fanProductHandled = false;
                 
                 if (creatorAssets.length > 0) {
                     try {
-                        // Pass last 8 messages of history for contextual AI understanding
-                        const recentFanHistory = fanHistory.slice(-8);
+                        // Pass last 8 messages of history for contextual AI understanding, filtering out old sessions (> 3 hours)
+                        const threeHoursAgo = new Date(Date.now() - 3 * 60 * 60 * 1000);
+                        const recentFanHistory = fanHistory
+                            .filter(h => new Date(h.timestamp) > threeHoursAgo)
+                            .slice(-8);
                         const fanMatchResult = await aiService.matchCreatorAssets(messageData.text, creatorAssets, recentFanHistory);
                         
                         // [UPGRADE]: Handle conversational intent even if exact match isn't found
