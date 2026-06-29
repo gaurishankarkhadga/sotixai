@@ -93,25 +93,26 @@ async function processCommentToDm(igUserId, commentData, helpers) {
                                             try {
                                                 smartReply = await aiService.generateDynamicC2DReply(igUserIdMapped, commentData.text, commentData.username, c2dSettings.commentReply);
                                             } catch (aiErr) {
-                                                console.error('[C2D] AI Comment Reply failed, using fallback:', aiErr.message);
-                                                let fallback = c2dSettings.commentReply || 'sent it to your dms';
-                                                // Strip emojis from fallback too
-                                                smartReply = fallback.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '').trim();
+                                                console.error('[C2D] AI Comment Reply failed. Fallbacks removed, skipping fixed reply.');
+                                                smartReply = null;
                                             }
-
-                                            const result = await replyToComment(commentData.commentId, smartReply, tokenData.accessToken);
-                                            await AutoReplyLog.create({
-                                                userId: igUserIdMapped,
-                                                commentId: commentData.commentId,
-                                                commentText: commentData.text,
-                                                commenterUsername: commentData.username,
-                                                mediaId: commentData.mediaId,
-                                                replyText: smartReply,
-                                                status: result.success ? 'sent' : 'failed',
-                                                action: 'comment_to_dm_reply',
-                                                scheduledAt: new Date(),
-                                                repliedAt: new Date()
-                                            });
+                                            
+                                            // Only reply if AI successfully generated a dynamic response
+                                            if (smartReply) {
+                                                const result = await replyToComment(commentData.commentId, smartReply, tokenData.accessToken);
+                                                await AutoReplyLog.create({
+                                                    userId: igUserIdMapped,
+                                                    commentId: commentData.commentId,
+                                                    commentText: commentData.text,
+                                                    commenterUsername: commentData.username,
+                                                    mediaId: commentData.mediaId,
+                                                    replyText: smartReply,
+                                                    status: result.success ? 'sent' : 'failed',
+                                                    action: 'comment_to_dm_reply',
+                                                    scheduledAt: new Date(),
+                                                    repliedAt: new Date()
+                                                });
+                                            }
                                         }
                                     } catch (e) { console.error('[C2D] Reply error:', e.message); }
                                 }, commentDelay * 1000);

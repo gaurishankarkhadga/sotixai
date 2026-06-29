@@ -363,18 +363,22 @@ async function generateDynamicC2DReply(userId, incomingText, senderName, customF
             Write the reply now (NO EMOJIS!):`;
         }
 
-        const systemInstruction = "You are a human creator replying to comments. You never use emojis. You are dynamic and highly variable in your phrasing.";
-        
-        const response = await callGeminiAPI(prompt, systemInstruction);
+        prompt = `SYSTEM INSTRUCTION: You are a human creator replying to comments. You never use emojis. You are dynamic and highly variable in your phrasing.\n\n` + prompt;
+        const response = await generateContentWithFallback(prompt);
 
         if (response.error) {
             console.error('[AI-Service] Dynamic C2D Reply error:', response.error);
             throw new Error(response.error);
         } else {
             // Strip any accidental emojis using regex just in case
-            let cleanText = (response.text || '').trim();
-            cleanText = cleanText.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '');
-            return cleanText.trim() || 'sent it to your dms';
+            let cleanText = (response.response.text() || '').trim();
+            cleanText = cleanText.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '').trim();
+            
+            if (!cleanText) {
+                throw new Error("AI returned empty string");
+            }
+            
+            return cleanText;
         }
 
     } catch (error) {
