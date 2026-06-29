@@ -207,6 +207,7 @@ const commentToDmSettingSchema = new mongoose.Schema({
     processedCount: { type: Number, default: 0 },
 
     // ==================== VERIFICATION ====================
+    verifiedAssetId: { type: String, default: null },
     lastVerifiedAt: { type: Date, default: null },
     verificationStatus: {
         tokenValid: { type: Boolean, default: false },

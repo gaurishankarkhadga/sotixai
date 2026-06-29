@@ -703,9 +703,7 @@ async function matchCreatorAssets(incomingText, creatorAssets) {
 
     } catch (error) {
         console.error('[AI-Service] Asset matching failed:', error.message);
-        // Fallback: return default assets
-        const defaults = creatorAssets.filter(a => a.isDefault && a.isActive !== false);
-        return { matchedAssets: defaults, unavailableAssets: [], isGenericMessage: true, isUnavailableRequest: false, matchReason: 'fallback' };
+        return { matchedAssets: [], unavailableAssets: [], isGenericMessage: true, isUnavailableRequest: false, matchReason: 'error' };
     }
 }
 

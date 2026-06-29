@@ -1454,15 +1454,45 @@ async function processWebhookPayload(body) {
                                                         try {
                                                             const currentC2d = await CommentToDmSetting.findOne({ userId: igUserIdMapped });
                                                             if (currentC2d && currentC2d.enabled) {
-                                                                let dmMessage = '';
                                                                 const creatorAssets = await CreatorAsset.find({ userId: igUserIdMapped }).lean();
                                                                 let customInstructions = [];
                                                                 if (c2dSettings.dmMessage) customInstructions.push(`CREATOR MESSAGE: "${c2dSettings.dmMessage}"`);
 
                                                                 try {
-                                                                    // Match assets by intent
-                                                                    const matchResult = await aiService.matchCreatorAssets(commentData.text, creatorAssets);
-                                                                    const assetsToShare = matchResult.matchedAssets;
+                                                                    let assetsToShare = [];
+                                                                    let isUnavailableRequest = false;
+                                                                    let isGenericMessage = true;
+
+                                                                    if (currentC2d.verifiedAssetId) {
+                                                                        const verifiedAsset = creatorAssets.find(a => a._id.toString() === currentC2d.verifiedAssetId);
+                                                                        if (verifiedAsset) {
+                                                                            const matchResult = await aiService.matchCreatorAssets(commentData.text, creatorAssets);
+                                                                            
+                                                                            // Check if commenter matched this specific verified asset
+                                                                            const matchedActive = matchResult.matchedAssets.some(a => a._id.toString() === currentC2d.verifiedAssetId);
+                                                                            const matchedInactive = matchResult.unavailableAssets.some(a => a._id.toString() === currentC2d.verifiedAssetId);
+                                                                            const matchedKeyword = currentC2d.keyword && commentData.text.toLowerCase().includes(currentC2d.keyword.toLowerCase());
+
+                                                                            if (matchedActive || matchedInactive || matchedKeyword) {
+                                                                                isGenericMessage = false;
+                                                                                if (verifiedAsset.isActive !== false) {
+                                                                                    assetsToShare = [verifiedAsset];
+                                                                                    isUnavailableRequest = false;
+                                                                                } else {
+                                                                                    assetsToShare = [];
+                                                                                    isUnavailableRequest = true;
+                                                                                    console.log(`[C2D-Webhook] Verified asset "${verifiedAsset.title}" is INACTIVE. Turning on unavailable flow.`);
+                                                                                }
+                                                                            } else {
+                                                                                isGenericMessage = true;
+                                                                                isUnavailableRequest = false;
+                                                                            }
+                                                                        }
+                                                                    } else {
+                                                                        console.log('[C2D-Webhook] No verified asset linked to this automation. Text reply only.');
+                                                                        isGenericMessage = true;
+                                                                        isUnavailableRequest = false;
+                                                                    }
 
                                                                     if (currentC2d.useAssets !== false && assetsToShare.length > 0) {
                                                                         // ==================== NATIVE RICH CARDS (Latest API) ====================
@@ -1486,9 +1516,9 @@ async function processWebhookPayload(body) {
                                                                             commentData.text,
                                                                             commentData.username,
                                                                             assetsToShare,
-                                                                            matchResult.isGenericMessage,
+                                                                            isGenericMessage,
                                                                             customInstructions,
-                                                                            matchResult.isUnavailableRequest
+                                                                            isUnavailableRequest
                                                                         );
                                                                         const textReply = dmReply.text;
 

@@ -131,10 +131,10 @@ module.exports = {
                 verification.assetsAvailable = assetCount > 0;
 
                 let assetConfirmationMessage = '';
+                let matchedInfo = null;
                 if (useAssets) {
                     if (allAssets.length > 0) {
                         const creatorPrompt = context.originalMessage || '';
-                        let matchedInfo = null;
 
                         try {
                             const matchResult = await matchCreatorAssets(creatorPrompt, allAssets);
@@ -142,6 +142,7 @@ module.exports = {
                             if (matchResult.matchedAssets && matchResult.matchedAssets.length > 0) {
                                 const matched = matchResult.matchedAssets[0];
                                 matchedInfo = {
+                                    id: matched._id.toString(),
                                     title: matched.title,
                                     type: matched.type,
                                     url: matched.url,
@@ -151,6 +152,7 @@ module.exports = {
                             } else if (matchResult.unavailableAssets && matchResult.unavailableAssets.length > 0) {
                                 const matched = matchResult.unavailableAssets[0];
                                 matchedInfo = {
+                                    id: matched._id.toString(),
                                     title: matched.title,
                                     type: matched.type,
                                     url: matched.url,
@@ -206,7 +208,8 @@ module.exports = {
                     startedAt,
                     processedCount: 0,
                     lastVerifiedAt: new Date(),
-                    verificationStatus: verification
+                    verificationStatus: verification,
+                    verifiedAssetId: matchedInfo ? matchedInfo.id : null
                 };
 
                 if (dmMessage) {
