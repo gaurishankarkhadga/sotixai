@@ -1495,40 +1495,32 @@ async function processWebhookPayload(body) {
                                                                         isUnavailableRequest = false;
                                                                     }
 
-                                                                    let textReply = "";
                                                                     if (currentC2d.useAssets !== false && assetsToShare.length > 0) {
-                                                                        // ==================== STRICT CHECKOUT LAYOUT ====================
-                                                                        // Instagram unfurls links automatically. We format this exactly like 
-                                                                        // the rich card layout to trigger the image preview reliably without AI hallucination.
-                                                                        const assetLayouts = assetsToShare.map(asset => {
-                                                                            let priceTag = '';
-                                                                            if (asset.price) {
-                                                                                const cleanPrice = asset.price.toString().replace(/[^\d.]/g, '');
-                                                                                priceTag = `💰 Price: ₹${cleanPrice}\n`;
-                                                                            }
-                                                                            
-                                                                            let buttonTitle = 'Visit Link';
-                                                                            const type = (asset.type || 'product').toLowerCase();
-                                                                            const typeMap = {
-                                                                                product: 'Checkout', merch: 'Checkout', course: 'Enroll Now',
-                                                                                ebook: 'Enroll Now', affiliate_link: 'Buy Now', service: 'Book Now', link: 'Visit Link'
-                                                                            };
-                                                                            if (typeMap[type]) buttonTitle = typeMap[type];
-
-                                                                            const absoluteActionUrl = (asset.url && !asset.url.startsWith('http')) ? `https://${asset.url}` : (asset.url || 'https://sotix.ai');
-                                                                            const desc = asset.description ? `📝 ${asset.description}\n` : '';
-                                                                            
-                                                                            return `📦 ${asset.title}\n${priceTag}${desc}\n👇 ${buttonTitle} Here:\n🔗 ${absoluteActionUrl}`;
-                                                                        });
-
-                                                                        // Ensure we strictly send exactly what the creator specified
-                                                                        if (currentC2d.dmMessage) {
-                                                                            textReply = `${currentC2d.dmMessage}\n\n${assetLayouts.join('\n\n➖➖➖➖➖➖\n\n')}`;
-                                                                        } else {
-                                                                            textReply = assetLayouts.join('\n\n➖➖➖➖➖➖\n\n');
+                                                                        // ==================== NATIVE RICH CARDS (Latest API) ====================
+                                                                        console.log('[C2D] Sending native rich cards (Generic Template) as Private Reply.');
+                                                                        
+                                                                        // Add link integration so image automatically shows (Creator verified message + link)
+                                                                        const assetLink = assetsToShare[0]?.url ? (assetsToShare[0].url.startsWith('http') ? assetsToShare[0].url : `https://${assetsToShare[0].url}`) : '';
+                                                                        const textWithLink = currentC2d.dmMessage ? `${currentC2d.dmMessage}\n\n🔗 ${assetLink}` : `🔗 ${assetLink}`;
+                                                                        if (assetLink) {
+                                                                            await sendPrivateReply(igUserId, commentData.commentId, textWithLink, tokenData.accessToken);
                                                                         }
+                                                                        
+                                                                        // Keep previous checkout layout exactly as requested
+                                                                        const result = await sendGenericTemplate(igUserId, { comment_id: commentData.commentId }, assetsToShare, tokenData.accessToken);
+
+                                                                        await DmAutoReplyLog.create({
+                                                                            userId: igUserIdMapped,
+                                                                            senderId: commentData.senderId,
+                                                                            messageText: `[C2D] ${commentData.text}`,
+                                                                            replyText: `[Rich Cards Sent: ${assetsToShare.map(a => a.title).join(', ')}]`,
+                                                                            replyType: 'product_recommendation',
+                                                                            status: result.success ? 'sent' : 'failed',
+                                                                            scheduledAt: new Date(),
+                                                                            repliedAt: new Date()
+                                                                        });
                                                                     } else {
-                                                                        // Fallback for non-asset generic chats
+                                                                        // ==================== AI TEXT ONLY ====================
                                                                         const dmReply = await aiService.generateSmartDMReply(
                                                                             igUserIdMapped,
                                                                             commentData.text,
@@ -1536,25 +1528,24 @@ async function processWebhookPayload(body) {
                                                                             assetsToShare,
                                                                             isGenericMessage,
                                                                             customInstructions,
-                                                                            isUnavailableRequest,
-                                                                            true // isPrivateReply = true
+                                                                            isUnavailableRequest
                                                                         );
-                                                                        textReply = dmReply.text;
-                                                                    }
+                                                                        const textReply = dmReply.text;
 
-                                                                    if (textReply) {
-                                                                        const result = await sendPrivateReply(igUserId, commentData.commentId, textReply, tokenData.accessToken);
+                                                                        if (textReply) {
+                                                                            const result = await sendPrivateReply(igUserId, commentData.commentId, textReply, tokenData.accessToken);
 
-                                                                        await DmAutoReplyLog.create({
-                                                                            userId: igUserIdMapped,
-                                                                            senderId: commentData.senderId,
-                                                                            messageText: `[C2D] ${commentData.text}`,
-                                                                            replyText: textReply,
-                                                                            replyType: (assetsToShare.length > 0) ? 'text_with_link' : 'text',
-                                                                            status: result.success ? 'sent' : 'failed',
-                                                                            scheduledAt: new Date(),
-                                                                            repliedAt: new Date()
-                                                                        });
+                                                                            await DmAutoReplyLog.create({
+                                                                                userId: igUserIdMapped,
+                                                                                senderId: commentData.senderId,
+                                                                                messageText: `[C2D] ${commentData.text}`,
+                                                                                replyText: textReply,
+                                                                                replyType: 'text',
+                                                                                status: result.success ? 'sent' : 'failed',
+                                                                                scheduledAt: new Date(),
+                                                                                repliedAt: new Date()
+                                                                            });
+                                                                        }
                                                                     }
                                                                 } catch (aiErr) {
                                                                     console.error('[C2D] AI DM Reply failed:', aiErr.message);
