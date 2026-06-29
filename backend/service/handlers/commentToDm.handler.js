@@ -124,6 +124,9 @@ module.exports = {
                     verificationParts.push('⚠️ No token provided — some features may not work');
                 }
 
+                // Fetch existing settings to preserve verifiedAssetId if needed
+                const existingSetting = await CommentToDmSetting.findOne({ userId });
+
                 // Check assets and match with creator's original request
                 const allAssets = await CreatorAsset.find({ userId }).lean();
                 const activeAssets = allAssets.filter(a => a.isActive !== false);
@@ -175,12 +178,39 @@ module.exports = {
                                 verification.assetsAvailable = false;
                             }
                         } else {
-                            if (assetCount > 0) {
-                                verificationParts.push(`✅ ${assetCount} active asset${assetCount > 1 ? 's' : ''} ready to share`);
-                                assetConfirmationMessage = `📦 **Product Flow:** Dynamic AI matching enabled. The system will automatically select the best of your ${assetCount} active products based on the commenter's request.`;
-                            } else {
-                                verificationParts.push('⚠️ No active assets — DMs will use AI-generated reply without products');
-                                assetConfirmationMessage = '⚠️ **Product Flow:** No active products or links found in your library. Please add assets so they can be delivered in DMs.';
+                            // Preserve existing verified asset if no new match is found
+                            if (existingSetting && existingSetting.verifiedAssetId) {
+                                const verifiedAsset = allAssets.find(a => a._id.toString() === existingSetting.verifiedAssetId);
+                                if (verifiedAsset) {
+                                    matchedInfo = {
+                                        id: verifiedAsset._id.toString(),
+                                        title: verifiedAsset.title,
+                                        type: verifiedAsset.type,
+                                        url: verifiedAsset.url,
+                                        price: verifiedAsset.price,
+                                        isActive: verifiedAsset.isActive !== false
+                                    };
+                                    if (matchedInfo.isActive) {
+                                        verificationParts.push(`✅ **Preserved Product:** "${matchedInfo.title}" (${matchedInfo.type}) remains linked to this automation.`);
+                                        assetConfirmationMessage = `📦 **Matched Product (Preserved):** "${matchedInfo.title}"\n🔗 **Link:** ${matchedInfo.url || 'No link'}\n💰 **Price:** ${matchedInfo.price || 'Free'}`;
+                                        verification.assetsAvailable = true;
+                                    } else {
+                                        verificationParts.push(`⚠️ **Preserved Product Alert:** "${matchedInfo.title}" is currently **INACTIVE**. Please activate it in your assets library.`);
+                                        assetConfirmationMessage = `⚠️ **Matched Product (INACTIVE):** "${matchedInfo.title}"\n*(Note: Turn this asset ON in your assets library)*`;
+                                        verification.assetsAvailable = false;
+                                    }
+                                }
+                            }
+                            
+                            // If still no match after preservation attempt
+                            if (!matchedInfo) {
+                                if (assetCount > 0) {
+                                    verificationParts.push(`✅ ${assetCount} active asset${assetCount > 1 ? 's' : ''} ready to share`);
+                                    assetConfirmationMessage = `📦 **Product Flow:** Dynamic AI matching enabled. The system will automatically select the best of your ${assetCount} active products based on the commenter's request.`;
+                                } else {
+                                    verificationParts.push('⚠️ No active assets — DMs will use AI-generated reply without products');
+                                    assetConfirmationMessage = '⚠️ **Product Flow:** No active products or links found in your library. Please add assets so they can be delivered in DMs.';
+                                }
                             }
                         }
                     } else {

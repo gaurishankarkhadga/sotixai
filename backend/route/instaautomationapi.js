@@ -1456,7 +1456,7 @@ async function processWebhookPayload(body) {
                                                             if (currentC2d && currentC2d.enabled) {
                                                                 const creatorAssets = await CreatorAsset.find({ userId: igUserIdMapped }).lean();
                                                                 let customInstructions = [];
-                                                                if (c2dSettings.dmMessage) customInstructions.push(`CREATOR MESSAGE: "${c2dSettings.dmMessage}"`);
+                                                                if (currentC2d.dmMessage) customInstructions.push(`CREATOR MESSAGE: "${currentC2d.dmMessage}"`);
 
                                                                 try {
                                                                     let assetsToShare = [];
@@ -1471,7 +1471,8 @@ async function processWebhookPayload(body) {
                                                                             // Check if commenter matched this specific verified asset
                                                                             const matchedActive = matchResult.matchedAssets.some(a => a._id.toString() === currentC2d.verifiedAssetId);
                                                                             const matchedInactive = matchResult.unavailableAssets.some(a => a._id.toString() === currentC2d.verifiedAssetId);
-                                                                            const matchedKeyword = currentC2d.keyword && commentData.text.toLowerCase().includes(currentC2d.keyword.toLowerCase());
+                                                                            const hasKeyword = currentC2d.keyword && currentC2d.keyword.trim().length > 0;
+                                                                            const matchedKeyword = !hasKeyword || commentData.text.toLowerCase().includes(currentC2d.keyword.toLowerCase());
 
                                                                             if (matchedActive || matchedInactive || matchedKeyword) {
                                                                                 isGenericMessage = false;
@@ -1539,13 +1540,13 @@ async function processWebhookPayload(body) {
                                                                     }
                                                                 } catch (aiErr) {
                                                                     console.error('[C2D] AI DM Reply failed:', aiErr.message);
-                                                                    if (c2dSettings.dmMessage) {
-                                                                        const result = await sendPrivateReply(igUserId, commentData.commentId, c2dSettings.dmMessage, tokenData.accessToken);
+                                                                    if (currentC2d.dmMessage) {
+                                                                        const result = await sendPrivateReply(igUserId, commentData.commentId, currentC2d.dmMessage, tokenData.accessToken);
                                                                         await DmAutoReplyLog.create({
                                                                             userId: igUserIdMapped,
                                                                             senderId: commentData.senderId,
                                                                             messageText: `[C2D] ${commentData.text}`,
-                                                                            replyText: c2dSettings.dmMessage,
+                                                                            replyText: currentC2d.dmMessage,
                                                                             replyType: 'text',
                                                                             status: result.success ? 'sent' : 'failed',
                                                                             scheduledAt: new Date(),
