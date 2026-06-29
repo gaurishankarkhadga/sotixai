@@ -234,7 +234,9 @@ async function processDirectMessage(event, igUserId, helpers) {
                 
                 if (creatorAssets.length > 0) {
                     try {
-                        const fanMatchResult = await aiService.matchCreatorAssets(messageData.text, creatorAssets);
+                        // Pass last 8 messages of history for contextual AI understanding
+                        const recentFanHistory = fanHistory.slice(-8);
+                        const fanMatchResult = await aiService.matchCreatorAssets(messageData.text, creatorAssets, recentFanHistory);
                         
                         // [UPGRADE]: Handle conversational intent even if exact match isn't found
                         if (!fanMatchResult.isGenericMessage) {
@@ -249,7 +251,8 @@ async function processDirectMessage(event, igUserId, helpers) {
                                 fanMatchResult.matchedAssets,
                                 false, 
                                 [],
-                                fanMatchResult.isUnavailableRequest
+                                fanMatchResult.isUnavailableRequest,
+                                recentFanHistory
                             );
 
                             // Step 1: Send text reply (Conversational)
@@ -306,7 +309,7 @@ async function processDirectMessage(event, igUserId, helpers) {
                             senderId: senderId,
                             messageText: messageData.text,
                             replyText: fanReplyText,
-                            replyType: 'fan_engagement',
+                            replyType: 'text',
                             status: 'sent',
                             scheduledAt: new Date(),
                             repliedAt: new Date()

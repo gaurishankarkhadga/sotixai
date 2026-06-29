@@ -671,7 +671,7 @@ async function researchCreatorOnline(userId, username) {
  * @param {Array} creatorAssets - Array of active CreatorAsset documents
  * @returns {Promise<{matchedAssets: Array, isGenericMessage: boolean}>}
  */
-async function matchCreatorAssets(incomingText, creatorAssets) {
+async function matchCreatorAssets(incomingText, creatorAssets, chatHistory = []) {
     try {
         if (!creatorAssets || creatorAssets.length === 0) {
             return { matchedAssets: [], unavailableAssets: [], isGenericMessage: true, isUnavailableRequest: false };
@@ -690,14 +690,20 @@ async function matchCreatorAssets(incomingText, creatorAssets) {
             isActive: a.isActive !== false
         }));
 
+        let historyContext = '';
+        if (chatHistory && chatHistory.length > 0) {
+            historyContext = 'Recent chat history for context:\n' + chatHistory.map(h => `${h.role === 'assistant' ? 'Creator' : 'Fan'}: "${h.text}"`).join('\n') + '\n\n';
+        }
+
         const prompt = `
         A user sent this message: "${incomingText}"
+        ${historyContext}
 
         The creator has these assets in their library (some may be inactive/disabled):
         ${JSON.stringify(assetCatalog, null, 2)}
 
-        Analyze the user's message and determine:
-        1. Is this a GENERIC message (hi, hello, hey, what's up, random chat) or does the user have a SPECIFIC intent?
+        Analyze the user's message IN THE CONTEXT of the recent chat history to determine:
+        1. Is this a GENERIC message (hi, hello, hey, what's up, random chat) or does the user have a SPECIFIC intent? (e.g. if the creator previously asked "want to see similar products?" and the user replies "yes", their intent is SPECIFIC to seeing similar products. In this case, match the most relevant active assets based on their original request in the history).
         2. If specific intent — which assets are most relevant? Match by meaning, title, tags, description, or url.
         3. If any matched asset has "isActive": true, return its ID in "matchedAssetIds".
         4. If any matched asset has "isActive": false, return its ID in "unavailableAssetIds".
@@ -786,7 +792,7 @@ async function matchCreatorAssets(incomingText, creatorAssets) {
  * @param {boolean} isGenericMessage - Whether the message is generic
  * @returns {Promise<{text: string, recommendedAssets: Array, replyType: string}>}
  */
-async function generateSmartDMReply(userId, incomingText, senderName, matchedAssets, isGenericMessage, customInstructions = [], isUnavailableRequest = false) {
+async function generateSmartDMReply(userId, incomingText, senderName, matchedAssets, isGenericMessage, customInstructions = [], isUnavailableRequest = false, chatHistory = []) {
     try {
         const persona = await CreatorPersona.findOne({ userId });
 
@@ -800,6 +806,11 @@ async function generateSmartDMReply(userId, incomingText, senderName, matchedAss
                 if (a.price) info += ` | Price: ${a.price}`;
                 return info;
             }).join('\n');
+        }
+
+        let historyContext = '';
+        if (chatHistory && chatHistory.length > 0) {
+            historyContext = '=== RECENT CHAT HISTORY ===\n' + chatHistory.map(h => `${h.role === 'assistant' ? 'You' : '@' + senderName}: "${h.text}"`).join('\n') + '\n\n';
         }
 
         // Build persona context WITH real reply examples (BUG 8 fix)
@@ -905,6 +916,7 @@ async function generateSmartDMReply(userId, incomingText, senderName, matchedAss
             ${styleExamplesBlock}
             ${customContext}
             ${antiAiRules}
+            ${historyContext}
 
             === SITUATION ===
             @${senderName} sent this DM: "${incomingText}"
@@ -931,6 +943,7 @@ async function generateSmartDMReply(userId, incomingText, senderName, matchedAss
             ${styleExamplesBlock}
             ${customContext}
             ${antiAiRules}
+            ${historyContext}
 
             === YOUR PRODUCTS/LINKS TO SHARE ===
             ${assetContext}
@@ -962,6 +975,7 @@ async function generateSmartDMReply(userId, incomingText, senderName, matchedAss
             ${realExamplesBlock}
             ${styleExamplesBlock}
             ${antiAiRules}
+            ${historyContext}
 
             @${senderName}: "${incomingText}"
 
