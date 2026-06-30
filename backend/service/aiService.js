@@ -1038,7 +1038,6 @@ module.exports = {
     researchCreatorOnline,
     matchCreatorAssets,
     generateDynamicC2DReply,
-    generateSmartReply,
     generateSmartDMReply,
     parseCleanReply,
     extractJson

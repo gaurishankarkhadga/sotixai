@@ -56,7 +56,7 @@ mongoose.connect(process.env.MONGODB_URI)
     // Fix: autonomousMode was defaulting to true, causing DM replies even when automation was "stopped".
     // Force ALL existing settings to autonomousMode=false so "stop all" actually works.
     try {
-      const { DmAutoReplySetting, AutoReplySetting, CommentToDmSetting: C2DSetting } = require('./model/Instaautomation');
+      const { DmAutoReplySetting, AutoReplySetting, CommentToDmSetting: C2DSetting, AutoReplyLog } = require('./model/Instaautomation');
       
       const dmResult = await DmAutoReplySetting.updateMany(
         { autonomousMode: true },
@@ -64,6 +64,19 @@ mongoose.connect(process.env.MONGODB_URI)
       );
       if (dmResult.modifiedCount > 0) {
         console.log(`[Startup-Fix] ⚠️ Forced autonomousMode=false on ${dmResult.modifiedCount} DM settings (was causing replies even when stopped)`);
+      }
+
+      // ==================== ORPHAN RECOVERY: Resolve pending replies lost to server restart ====================
+      // If the server crashed or redeployed while a setTimeout delay was active, those replies
+      // are permanently lost (in-memory timeouts don't survive restarts). We mark them as failed
+      // so the creator's logs are accurate and they can see what was missed.
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+      const orphanResult = await AutoReplyLog.updateMany(
+        { status: 'pending', scheduledAt: { $lte: fiveMinutesAgo } },
+        { status: 'failed', repliedAt: new Date(), error: 'Server restarted before reply could be sent — timeout was lost' }
+      );
+      if (orphanResult.modifiedCount > 0) {
+        console.log(`[Startup-Fix] ⚠️ Resolved ${orphanResult.modifiedCount} orphaned pending replies (lost during previous server restart)`);
       }
       
       console.log('[Startup-Fix] ✅ Database safety check complete');

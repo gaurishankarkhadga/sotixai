@@ -323,6 +323,22 @@ async function sendGenericTemplate(igUserId, recipientIGSID, assets, accessToken
         return element;
     });
 
+    // ==================== VALIDATION: Filter out invalid elements before sending ====================
+    // Meta will reject the ENTIRE payload if any single element has missing required fields.
+    const validElements = elements.filter(el => {
+        const hasTitle = el.title && el.title.trim().length > 0;
+        const hasButtonUrl = el.buttons && el.buttons.length > 0 && el.buttons[0].url && el.buttons[0].url.startsWith('http');
+        if (!hasTitle || !hasButtonUrl) {
+            console.warn(`[DM-Cards] Filtered out invalid element: title="${el.title}", url="${el.buttons?.[0]?.url}"`);
+        }
+        return hasTitle && hasButtonUrl;
+    });
+
+    if (validElements.length === 0) {
+        console.error('[DM-Cards] All elements failed validation — nothing to send.');
+        return { success: false, error: 'All assets failed validation (missing title or URL)' };
+    }
+
     const recipientObj = (typeof recipientIGSID === 'object' && recipientIGSID !== null) ? recipientIGSID : { id: recipientIGSID };
     const payload = {
         recipient: recipientObj,
@@ -332,7 +348,7 @@ async function sendGenericTemplate(igUserId, recipientIGSID, assets, accessToken
                 payload: {
                     template_type: 'generic',
                     image_aspect_ratio: 'square', // Modern square layout
-                    elements: elements.slice(0, 10)
+                    elements: validElements.slice(0, 10)
                 }
             }
         }
@@ -581,38 +597,40 @@ async function scheduleAutoReply(commentData, igUserId) {
     });
 
     const timeoutId = setTimeout(async () => {
-        // ==================== RE-CHECK: Ensure automation is still enabled ====================
-        // This prevents sending replies if the user disabled automation during the delay window
         try {
-            const currentSettings = await AutoReplySetting.findOne({ userId: igUserId });
-            if (!currentSettings || !currentSettings.enabled) {
-                console.log(`[AutoReply] ABORTED: Automation was disabled during delay for comment: ${commentData.commentId}`);
-                await AutoReplyLog.findByIdAndUpdate(logEntry._id, {
-                    status: 'failed',
-                    repliedAt: new Date(),
-                    error: 'Automation disabled during delay — reply cancelled'
-                });
-                pendingReplies.delete(commentData.commentId);
+            // ==================== RE-CHECK: Ensure automation is still enabled ====================
+            // This prevents sending replies if the user disabled automation during the delay window
+            try {
+                const currentSettings = await AutoReplySetting.findOne({ userId: igUserId });
+                if (!currentSettings || !currentSettings.enabled) {
+                    console.log(`[AutoReply] ABORTED: Automation was disabled during delay for comment: ${commentData.commentId}`);
+                    await AutoReplyLog.findByIdAndUpdate(logEntry._id, {
+                        status: 'failed',
+                        repliedAt: new Date(),
+                        error: 'Automation disabled during delay — reply cancelled'
+                    });
+                    return;
+                }
+            } catch (recheckErr) {
+                console.error('[AutoReply] Re-check failed, aborting reply for safety:', recheckErr.message);
                 return;
             }
-        } catch (recheckErr) {
-            console.error('[AutoReply] Re-check failed, aborting reply for safety:', recheckErr.message);
+
+            const result = await replyToComment(commentData.commentId, replyMessage, tokenData.accessToken);
+
+            // Update log entry in DB
+            await AutoReplyLog.findByIdAndUpdate(logEntry._id, {
+                status: result.success ? 'sent' : 'failed',
+                repliedAt: new Date(),
+                error: result.error || null,
+                ...(result.replyId && { replyId: result.replyId })
+            });
+
+            console.log(`[AutoReply] Reply ${result.success ? 'sent' : 'failed'} for comment: ${commentData.commentId}`);
+        } finally {
+            // ALWAYS clean up the Map entry, even if an unexpected error occurred above
             pendingReplies.delete(commentData.commentId);
-            return;
         }
-
-        const result = await replyToComment(commentData.commentId, replyMessage, tokenData.accessToken);
-
-        // Update log entry in DB
-        await AutoReplyLog.findByIdAndUpdate(logEntry._id, {
-            status: result.success ? 'sent' : 'failed',
-            repliedAt: new Date(),
-            error: result.error || null,
-            ...(result.replyId && { replyId: result.replyId })
-        });
-
-        pendingReplies.delete(commentData.commentId);
-        console.log(`[AutoReply] Reply ${result.success ? 'sent' : 'failed'} for comment: ${commentData.commentId}`);
     }, delayMs);
 
     pendingReplies.set(commentData.commentId, timeoutId);
@@ -751,6 +769,7 @@ router.get('/callback', async (req, res) => {
         }
 
         // --- WEBHOOK SUBSCRIPTION (CRITICAL FOR PRODUCTION) ---
+        let webhookSubscribed = true;
         try {
             console.log('[OAuth] Auto-subscribing account to webhooks (comments, messages)...');
             const subRes = await axios.post(
@@ -765,6 +784,7 @@ router.get('/callback', async (req, res) => {
             );
             console.log('[OAuth] Webhook subscription success:', JSON.stringify(subRes.data));
         } catch (subErr) {
+            webhookSubscribed = false;
             console.error('[OAuth] Webhook auto-subscribe failed:', subErr.response?.data?.error?.message || subErr.message);
             // We don't throw here to avoid failing the whole login, but this is critical for webhooks to work.
         }
@@ -797,7 +817,8 @@ router.get('/callback', async (req, res) => {
             .catch(err => console.error('[OAuth] Persona analysis failed:', err.message));
 
         // Redirect to frontend with token and userId
-        res.redirect(`${INSTAGRAM_CONFIG.frontendUrl}?token=${longLivedToken}&userId=${userIdStr}&expiresIn=${expiresIn}`);
+        const redirectParams = `token=${longLivedToken}&userId=${userIdStr}&expiresIn=${expiresIn}${!webhookSubscribed ? '&webhookWarning=true' : ''}`;
+        res.redirect(`${INSTAGRAM_CONFIG.frontendUrl}?${redirectParams}`);
 
     } catch (error) {
         console.error('[OAuth] Callback error:', error.response?.data || error.message);
