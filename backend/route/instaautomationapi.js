@@ -1677,6 +1677,52 @@ router.get('/dm-auto-reply/settings', async (req, res) => {
     }
 });
 
+// ==================== ABUSE MANAGEMENT SETTINGS ====================
+
+router.get('/abuse-management/settings', async (req, res) => {
+    try {
+        const userId = req.query.userId;
+        if (!userId) return res.status(400).json({ success: false, error: 'userId required' });
+
+        const settings = await AbuseManagementSetting.findOne({ userId }).lean();
+        res.json({
+            success: true,
+            data: settings || {
+                enabled: false,
+                action: 'delete',
+                applyToComments: true,
+                applyToDMs: true
+            }
+        });
+    } catch (error) {
+        console.error('[AbuseMgmt] Settings fetch error:', error.message);
+        res.status(500).json({ success: false, error: 'Failed to fetch abuse settings' });
+    }
+});
+
+router.post('/abuse-management/settings', async (req, res) => {
+    try {
+        const { userId, enabled, action, applyToComments, applyToDMs } = req.body;
+        if (!userId) return res.status(400).json({ success: false, error: 'userId required' });
+
+        const settings = await AbuseManagementSetting.findOneAndUpdate(
+            { userId },
+            {
+                enabled: Boolean(enabled),
+                action: action || 'delete',
+                applyToComments: Boolean(applyToComments),
+                applyToDMs: Boolean(applyToDMs)
+            },
+            { upsert: true, new: true }
+        );
+
+        res.json({ success: true, data: settings });
+    } catch (error) {
+        console.error('[AbuseMgmt] Settings save error:', error.message);
+        res.status(500).json({ success: false, error: 'Failed to save abuse settings' });
+    }
+});
+
 // ==================== GLOBAL NEGOTIATION PREFERENCES API ====================
 
 // Route: Get Deal Negotiator Settings (15-question wizard)

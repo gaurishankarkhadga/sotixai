@@ -125,7 +125,13 @@ function Connect() {
                     <a href="#customers" className="nav-link">Enterprise</a>
                 </div>
                 <div className="navbar-right">
-                    <button className="nav-btn-outline">Contact Sales</button>
+                    <button 
+                        className="nav-btn-outline early-access-btn"
+                        onClick={() => navigate('/early-access')}
+                    >
+                        <span>Early Access</span>
+                        <div className="liquid-bg"></div>
+                    </button>
                 </div>
             </nav>
 
@@ -323,122 +329,7 @@ function Connect() {
                 </div>
             </section>
 
-            {/* Pricing Section */}
-            <section className="pricing-section">
-                <div id="pricing-header" className={`section-header-centered scroll-reveal ${visibleElements['pricing-header'] ? 'in-view' : ''}`}>
-                    <div className="section-badge">
-                        <Zap size={14} />
-                        <span>Pricing Plans</span>
-                    </div>
-                    <h2 className="section-title-premium">Flexible Pricing for Creators.</h2>
-                    <p className="section-subtitle-premium">Choose the plan that matches your current growth stage. Cancel or change plans anytime.</p>
-                    
-                    {/* Billing Toggle */}
-                    <div className="billing-toggle-container">
-                        <button 
-                            className={`billing-toggle-btn ${billingCycle === 'monthly' ? 'active' : ''}`}
-                            onClick={() => setBillingCycle('monthly')}
-                        >
-                            Monthly
-                        </button>
-                        <button 
-                            className={`billing-toggle-btn ${billingCycle === 'yearly' ? 'active' : ''}`}
-                            onClick={() => setBillingCycle('yearly')}
-                        >
-                            Yearly
-                            <span className="save-badge">Save 20%</span>
-                        </button>
-                    </div>
-                </div>
-
-                <div className="pricing-grid">
-                    {/* Starter Tier */}
-                    <div id="price-card-1" className={`pricing-card scroll-reveal stagger-1 ${visibleElements['price-card-1'] ? 'in-view' : ''}`}>
-                        <div className="tier-header">
-                            <h3>Starter</h3>
-                            <p className="tier-desc">Perfect for hobbyists and creators starting out.</p>
-                            <div className="tier-price">
-                                <span className="currency">$</span>
-                                <span className="price">0</span>
-                                <span className="duration">/mo</span>
-                            </div>
-                        </div>
-                        <div className="tier-features">
-                            <ul>
-                                <li><CheckCircle2 size={16} className="check-icon" /> <span>1 Active Channel</span></li>
-                                <li><CheckCircle2 size={16} className="check-icon" /> <span>100 Auto-Replies / mo</span></li>
-                                <li><CheckCircle2 size={16} className="check-icon" /> <span>Basic Comment Triggers</span></li>
-                                <li><CheckCircle2 size={16} className="check-icon" /> <span>Community Support</span></li>
-                            </ul>
-                        </div>
-                        <button className="pricing-btn starter-btn">Get Started</button>
-                    </div>
-
-                    {/* Pro Tier (Featured) */}
-                    <div id="price-card-2" className={`pricing-card featured scroll-reveal stagger-2 ${visibleElements['price-card-2'] ? 'in-view' : ''}`}>
-                        <div className="featured-badge">Most Popular</div>
-                        <div className="tier-header">
-                            <h3>Creator Pro</h3>
-                            <p className="tier-desc">For active creators looking to maximize engagement.</p>
-                            <div className="tier-price">
-                                <span className="currency">$</span>
-                                <span className="price">{billingCycle === 'monthly' ? '19' : '15'}</span>
-                                <span className="duration">/mo</span>
-                            </div>
-                            {billingCycle === 'yearly' && <p className="billed-annually">Billed annually ($180/yr)</p>}
-                        </div>
-                        <div className="tier-features">
-                            <ul>
-                                <li><CheckCircle2 size={16} className="check-icon pro-check" /> <span>3 Active Channels</span></li>
-                                <li><CheckCircle2 size={16} className="check-icon pro-check" /> <span>Unlimited Auto-Replies</span></li>
-                                <li><CheckCircle2 size={16} className="check-icon pro-check" /> <span>AI Intent Recognition</span></li>
-                                <li><CheckCircle2 size={16} className="check-icon pro-check" /> <span>Advanced DM Sequences</span></li>
-                                <li><CheckCircle2 size={16} className="check-icon pro-check" /> <span>Priority Email Support</span></li>
-                            </ul>
-                        </div>
-                        <button className="pricing-btn featured-btn">Upgrade to Pro</button>
-                    </div>
-
-                    {/* Scale Tier */}
-                    <div id="price-card-3" className={`pricing-card scroll-reveal stagger-3 ${visibleElements['price-card-3'] ? 'in-view' : ''}`}>
-                        <div className="tier-header">
-                            <h3>Agency & Scale</h3>
-                            <p className="tier-desc">For high-volume creators, agencies, and businesses.</p>
-                            <div className="tier-price">
-                                <span className="currency">$</span>
-                                <span className="price">{billingCycle === 'monthly' ? '49' : '39'}</span>
-                                <span className="duration">/mo</span>
-                            </div>
-                            {billingCycle === 'yearly' && <p className="billed-annually">Billed annually ($468/yr)</p>}
-                        </div>
-                        <div className="tier-features">
-                            <ul>
-                                <li><CheckCircle2 size={16} className="check-icon" /> <span>Unlimited Channels</span></li>
-                                <li><CheckCircle2 size={16} className="check-icon" /> <span>Unlimited Auto-Replies</span></li>
-                                <li><CheckCircle2 size={16} className="check-icon" /> <span>Dedicated Account Manager</span></li>
-                                <li><CheckCircle2 size={16} className="check-icon" /> <span>Custom AI Response Tone</span></li>
-                                <li><CheckCircle2 size={16} className="check-icon" /> <span>Advanced Webhook Integrations</span></li>
-                                <li><CheckCircle2 size={16} className="check-icon" /> <span>24/7 Priority Support</span></li>
-                            </ul>
-                        </div>
-                        <button className="pricing-btn scale-btn">Upgrade to Scale</button>
-                    </div>
-                </div>
-
-                {/* Pricing Bottom Bar / Trust Banner */}
-                <div id="pricing-trust-bar" className={`pricing-bottom-bar scroll-reveal ${visibleElements['pricing-trust-bar'] ? 'in-view' : ''}`}>
-                    <div className="trust-content">
-                        <ShieldCheck size={20} className="trust-icon" />
-                        <span className="trust-main-text">Risk-Free • No Credit Card Required for Starter Plan • 14-day Money Back Guarantee on Paid Plans</span>
-                    </div>
-                    <div className="trust-separator"></div>
-                    <div className="trust-features-inline">
-                        <span>✓ Cancel Anytime</span>
-                        <span>✓ Change Plans Instantly</span>
-                        <span>✓ Secure 256-bit Checkout</span>
-                    </div>
-                </div>
-            </section>
+{/* Pricing Section Hidden for now */}
 
             {/* FAQ Section */}
             <section className="faq-section">

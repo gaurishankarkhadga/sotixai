@@ -10,6 +10,7 @@ import Assets from './pages/Assets';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsAndConditions from './pages/TermsAndConditions';
 import DataDeletion from './pages/DataDeletion';
+import EarlyAccess from './pages/EarlyAccess';
 import { ThemeProvider } from './Base';
 import './App.css';
 
@@ -60,6 +61,7 @@ function App() {
         <Routes>
           <Route path="/" element={<ConnectOrChat />} />
           <Route path="/connect" element={<Connect />} />
+          <Route path="/early-access" element={<EarlyAccess />} />
           
           {/* Dashboard Shell layout using ChatHub */}
           <Route element={<ChatHub />}>

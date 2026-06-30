@@ -1,6 +1,7 @@
 const { generateContentWithFallback } = require('./geminiClient');
 const { parseCleanReply } = require('./aiService');
-const { CreatorPersona, DmAutoReplySetting } = require('../model/Instaautomation');
+const { DmAutoReplySetting } = require('../model/Instaautomation');
+const CreatorPersona = require('../model/CreatorPersona');
 const CreatorAsset = require('../model/CreatorAsset');
 
 /**

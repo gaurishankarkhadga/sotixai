@@ -108,6 +108,9 @@ app.use('/api/biolinks', biolinkRoutes);
 const assetsRoutes = require('./route/assetsapi');
 app.use('/api/assets', assetsRoutes);
 
+const earlyAccessRoutes = require('./route/earlyaccess');
+app.use('/api/earlyaccess', earlyAccessRoutes);
+
 // Serve uploaded biolink files (avatars, product images, videos)
 const path = require('path');
 app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
