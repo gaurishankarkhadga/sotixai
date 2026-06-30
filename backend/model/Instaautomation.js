@@ -77,7 +77,7 @@ const autoReplyLogSchema = new mongoose.Schema({
     replyText: { type: String },
     replyId: { type: String },
     status: { type: String, enum: ['pending', 'sent', 'failed'], default: 'pending' },
-    action: { type: String, enum: ['replied', 'hidden', 'skipped', 'comment_to_dm_reply'], default: 'replied' },
+    action: { type: String, enum: ['replied', 'hidden', 'deleted', 'skipped', 'comment_to_dm_reply'], default: 'replied' },
     error: { type: String, default: null },
     scheduledAt: { type: Date, default: Date.now },
     repliedAt: { type: Date, default: null }
@@ -240,9 +240,20 @@ const brainAnalyticsSchema = new mongoose.Schema({
     finalizedAt: { type: Date }
 });
 
+// ==================== ABUSE MANAGEMENT SETTING ====================
+const abuseManagementSettingSchema = new mongoose.Schema({
+    userId: { type: String, required: true, unique: true, index: true },
+    enabled: { type: Boolean, default: false },
+    action: { type: String, enum: ['hide', 'delete'], default: 'delete' },
+    applyToComments: { type: Boolean, default: true },
+    applyToDMs: { type: Boolean, default: true },
+    recentAbuses: [{ type: Date, default: Date.now }]
+});
+
 const CommentToDmSetting = mongoose.model('CommentToDmSetting', commentToDmSettingSchema);
 const GamifyFunnelSetting = mongoose.model('GamifyFunnelSetting', gamifyFunnelSettingSchema);
 const BrainAnalytics = mongoose.model('BrainAnalytics', brainAnalyticsSchema);
+const AbuseManagementSetting = mongoose.model('AbuseManagementSetting', abuseManagementSettingSchema);
 
 // ==================== EXPORT MODELS ====================
 const Token = mongoose.model('Token', tokenSchema);
@@ -267,5 +278,6 @@ module.exports = {
     ApiUsage,
     CommentToDmSetting,
     GamifyFunnelSetting,
-    BrainAnalytics
+    BrainAnalytics,
+    AbuseManagementSetting
 };

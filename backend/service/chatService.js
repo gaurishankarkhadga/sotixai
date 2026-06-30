@@ -112,6 +112,8 @@ ${intentList}
 - set_deal_rate_rule (overrides global rates — params: {brandIndustry: "sports", minRate: 1000})
 - enable_inbox_triage (turns ON the AI brand negotiator/inbox triage — params: {})
 - disable_inbox_triage (turns OFF the AI brand negotiator/inbox triage)
+- enable_abuse_management (turns ON abuse and crisis management to delete toxic comments/DMs)
+- disable_abuse_management (turns OFF abuse and crisis management)
 - enable_comment_to_dm (send DM to commenters — params: {keyword?, commentReply?, dmMessage?, useAssets?, targetMedia?, hours?, maxComments?})
 - disable_comment_to_dm (stop comment-to-DM)
 - configure_comment_to_dm (update comment-to-DM settings)
@@ -499,6 +501,8 @@ function formatIntentTitle(intent) {
         'reset_preferences': 'Reset Preferences',
         'enable_all_automation': 'All Automation',
         'disable_all_automation': 'All Automation',
+        'enable_abuse_management': 'Abuse Management',
+        'disable_abuse_management': 'Abuse Management',
         'set_platform_preference': 'Platform Preference',
         'create_biolink': 'BioLink Created',
         'update_biolink': 'BioLink Updated',

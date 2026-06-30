@@ -147,6 +147,15 @@ function ChatHub() {
                     // Hot reload the CRM board silently
                     loadDealsData();
                 });
+
+                // Live listener for abuse alerts
+                socketRef.current.on('abuse_alert', (payload) => {
+                    addToasts([{
+                        type: 'warning',
+                        title: '⚠️ Abuse Intercepted',
+                        message: payload.message || 'High volume of toxic activity detected and intercepted.'
+                    }]);
+                });
             }
         });
 

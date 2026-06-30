@@ -14,13 +14,15 @@ const {
     Conversation,
     WebhookEvent,
     CommentToDmSetting,
-    BrainAnalytics
+    BrainAnalytics,
+    AbuseManagementSetting
 } = require('../model/Instaautomation');
 const CreatorPersona = require('../model/CreatorPersona');
 const aiService = require('../service/aiService');
 const brandDealService = require('../service/brandDealService');
 const inboxTriageService = require('../service/inboxTriageService');
 const viralTagService = require('../service/viralTagService');
+const abuseManagementService = require('../service/abuseManagementService');
 const CreatorAsset = require('../model/CreatorAsset');
 const { processCommentToDm } = require('./instaautomation_c2d');
 const { processDirectMessage } = require('./instaautomation_dm_automate');
@@ -1086,6 +1088,15 @@ async function processWebhookPayload(body) {
                             continue;
                         }
 
+                        // ==================== GLOBAL ABUSE & CRISIS MANAGEMENT ====================
+                        const isAbuse = await abuseManagementService.processCommentAbuse(igUserId, commentData, {
+                            resolveUserIdMapping, deleteComment, hideComment
+                        });
+                        if (isAbuse) {
+                            console.log(`[Webhook] ⛔ Abuse Management intercepted and removed comment by @${commentData.username}. Halting all further automation for this comment.`);
+                            continue; // Stop further processing for this comment
+                        }
+
                         // Check for viral tag (@mention of the user's username)
                         if (commentData.text.includes('@')) {
                             try {
@@ -1135,6 +1146,21 @@ async function processWebhookPayload(body) {
 
                     // Handle message event
                     if (event.message) {
+                        const messageData = {
+                            senderId: event.sender.id,
+                            text: event.message.text
+                        };
+
+                        // ==================== GLOBAL ABUSE & CRISIS MANAGEMENT ====================
+                        const isAbuse = await abuseManagementService.processDMAbuse(igUserId, messageData, {
+                            resolveUserIdMapping
+                        });
+
+                        if (isAbuse) {
+                            console.log(`[Webhook] ⛔ Abuse Management intercepted toxic DM from ${messageData.senderId}. Halting DM automation.`);
+                            continue; // Stop further processing (no reply)
+                        }
+
                         await processDirectMessage(event, igUserId, {
                             resolveUserIdMapping,
                             acquireConversationLock,
