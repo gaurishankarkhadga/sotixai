@@ -1,0 +1,306 @@
+/* frontend/src/styles/EarlyAccess.css */
+
+.ea-wrapper {
+    min-height: 100vh;
+    width: 100vw;
+    background-color: #050505;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    color: #ffffff;
+    box-sizing: border-box;
+}
+
+.ea-container {
+    display: flex;
+    width: 100%;
+    max-width: 1100px;
+    background: rgba(15, 15, 15, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 40px 80px rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+}
+
+/* --- Left Side: Banner / Image --- */
+.ea-banner {
+    flex: 1.2;
+    position: relative;
+    background: linear-gradient(135deg, #000000 0%, #0a0a0a 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 40px;
+    overflow: hidden;
+}
+
+/* Decorative abstract background inside banner */
+.ea-banner::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle at center, rgba(0, 242, 254, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(139, 92, 246, 0.1) 0%, transparent 40%);
+    animation: rotateBg 30s linear infinite;
+    z-index: 1;
+}
+
+@keyframes rotateBg {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.ea-banner-content {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+}
+
+.ea-banner-logo {
+    width: 80px;
+    height: 80px;
+    margin-bottom: 24px;
+    object-fit: contain;
+    filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.2));
+}
+
+.ea-banner-title {
+    font-size: 32px;
+    font-weight: 800;
+    line-height: 1.2;
+    margin-bottom: 16px;
+    background: linear-gradient(180deg, #FFFFFF 0%, #cbd5e1 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.5px;
+}
+
+.ea-banner-subtitle {
+    font-size: 16px;
+    color: #94a3b8;
+    line-height: 1.5;
+    max-width: 320px;
+    margin: 0 auto;
+}
+
+/* --- Right Side: Form --- */
+.ea-form-section {
+    flex: 1;
+    padding: 60px 48px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background: linear-gradient(to right, rgba(255,255,255,0.02), transparent);
+}
+
+.ea-form-header {
+    margin-bottom: 32px;
+}
+
+.ea-form-header h2 {
+    font-size: 24px;
+    font-weight: 700;
+    margin: 0 0 8px 0;
+    color: #ffffff;
+}
+
+.ea-form-header p {
+    font-size: 14px;
+    color: #94a3b8;
+    margin: 0;
+}
+
+.ea-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.ea-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.ea-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #cbd5e1;
+    margin-left: 4px;
+}
+
+.ea-input {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 14px 16px;
+    color: #ffffff;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+}
+
+.ea-input::placeholder {
+    color: rgba(255, 255, 255, 0.2);
+}
+
+.ea-input:focus {
+    outline: none;
+    border-color: rgba(0, 242, 254, 0.5);
+    background: rgba(0, 0, 0, 0.6);
+    box-shadow: 0 0 0 4px rgba(0, 242, 254, 0.1);
+}
+
+.ea-submit-btn {
+    margin-top: 12px;
+    width: 100%;
+    background: #ffffff;
+    color: #000000;
+    border: none;
+    border-radius: 12px;
+    padding: 16px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.ea-submit-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(255, 255, 255, 0.1);
+}
+
+.ea-submit-btn:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.ea-submit-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.ea-btn-content {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ea-message {
+    padding: 16px;
+    border-radius: 12px;
+    font-size: 14px;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.ea-error {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    color: #fca5a5;
+}
+
+.ea-success {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    background: rgba(16, 185, 129, 0.05);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    padding: 40px 24px;
+    border-radius: 16px;
+    text-align: center;
+}
+
+.ea-success h3 {
+    color: #34d399;
+    font-size: 20px;
+    margin: 0;
+}
+
+.ea-success p {
+    color: #94a3b8;
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.ea-back-btn {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-top: 8px;
+}
+
+.ea-back-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* --- Responsive Design --- */
+@media (max-width: 900px) {
+    .ea-container {
+        flex-direction: column;
+    }
+
+    .ea-banner {
+        padding: 48px 24px;
+    }
+
+    .ea-banner-title {
+        font-size: 28px;
+    }
+
+    .ea-form-section {
+        padding: 40px 32px;
+    }
+}
+
+@media (max-width: 600px) {
+    .ea-wrapper {
+        padding: 16px;
+    }
+
+    .ea-banner {
+        padding: 40px 20px;
+    }
+
+    .ea-banner-logo {
+        width: 60px;
+        height: 60px;
+        margin-bottom: 16px;
+    }
+
+    .ea-banner-title {
+        font-size: 24px;
+    }
+
+    .ea-banner-subtitle {
+        font-size: 14px;
+    }
+
+    .ea-form-section {
+        padding: 32px 20px;
+    }
+}
