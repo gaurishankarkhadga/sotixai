@@ -2,7 +2,8 @@ const {
     Token,
     AutoReplyLog,
     DmAutoReplyLog,
-    CommentToDmSetting
+    CommentToDmSetting,
+    Conversation
 } = require('../model/Instaautomation');
 const CreatorAsset = require('../model/CreatorAsset');
 const aiService = require('../service/aiService');
@@ -32,6 +33,13 @@ async function processCommentToDm(igUserId, commentData, helpers) {
         const c2dSettings = await CommentToDmSetting.findOne({ userId: igUserIdMapped });
 
         if (c2dSettings && c2dSettings.enabled && commentData.senderId) {
+            // ── CHECK HANDOVER PROTOCOL (META COMPLIANCE) ──
+            const existingConv = await Conversation.findOne({ senderId: commentData.senderId, userId: igUserIdMapped });
+            if (existingConv && existingConv.automationPausedUntil && new Date() < existingConv.automationPausedUntil) {
+                console.log(`[Comment-to-DM] ⏸️ Automation is PAUSED for user ${commentData.senderId} due to Handover Protocol. Skipping C2D.`);
+                return false;
+            }
+
             // ── CHECK 1: Time/Count/Media limits ──
             if (c2dSettings.expiresAt && new Date() > new Date(c2dSettings.expiresAt)) {
                 console.log(`[Comment-to-DM] ⏰ Time limit expired. Auto-disabling.`);

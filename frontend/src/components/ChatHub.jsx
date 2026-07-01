@@ -156,6 +156,16 @@ function ChatHub() {
                         message: payload.message || 'High volume of toxic activity detected and intercepted.'
                     }]);
                 });
+
+                // Live listener for Meta policy violations (e.g. 24-hour window)
+                socketRef.current.on('policy_alert', (payload) => {
+                    addToasts([{
+                        type: 'meta-policy',
+                        title: payload.title || '⛔ Meta Policy Alert',
+                        message: payload.message || 'A compliance violation prevented this action.',
+                        duration: 6000 // Give them more time to read it
+                    }]);
+                });
             }
         });
 
@@ -371,6 +381,9 @@ function ChatHub() {
     };
 
     const handleDisconnect = async () => {
+        const confirmMsg = "🚨 WARNING 🚨\n\nAre you sure you want to disconnect? Because of Meta's strict privacy rules, disconnecting will permanently wipe ALL your AI personas, analytics, and automation settings. You will never get it back.\n\nProceed to disconnect?";
+        if (!window.confirm(confirmMsg)) return;
+
         // FIRST: Tell the backend to stop ALL automation before clearing local state
         // Without this, webhooks continue to fire indefinitely after disconnect
         try {

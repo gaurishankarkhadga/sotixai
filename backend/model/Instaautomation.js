@@ -132,7 +132,10 @@ const conversationSchema = new mongoose.Schema({
     lastMessageTime: { type: Number },
     unreadCount: { type: Number, default: 0 },
     lockedUntil: { type: Date, default: null }, // [FIX] Conversation Locking to prevent double-texting
+    automationPausedUntil: { type: Date, default: null }, // [FIX] Human Handover Protocol compliance
     priorityTag: { type: String, enum: ['Collaboration', 'Support', 'Fan Mail', 'Spam', 'Other', 'Untriaged'], default: 'Untriaged' },
+    notificationMessagesToken: { type: String, default: null }, // [FIX] Recurring Notifications Opt-in token
+    threadControl: { type: String, enum: ['primary', 'secondary'], default: 'primary' }, // [FIX] Standby channel sync
     negotiationData: {
         brandName: { type: String },
         suggestedRate: { type: String },

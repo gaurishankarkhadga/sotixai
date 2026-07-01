@@ -1,11 +1,18 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
+import { ChevronLeft, Scale } from 'lucide-react';
 import './PolicyPages.css';
 
 const TermsAndConditions = () => {
     return (
         <div className="policy-container">
             <div className="policy-content">
-                <h1>Terms and Conditions</h1>
+                <div style={{ marginBottom: '24px' }}>
+                    <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)', textDecoration: 'none', fontWeight: 500 }}>
+                        <ChevronLeft size={16} /> Back to Home
+                    </Link>
+                </div>
+                <h1 style={{ display: 'flex', alignItems: 'center', gap: '12px' }}><Scale size={32} color="var(--primary)" /> Terms and Conditions</h1>
                 <p className="last-updated">Last Updated: March 1, 2026</p>
 
                 <section>

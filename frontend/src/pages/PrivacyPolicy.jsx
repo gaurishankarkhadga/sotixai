@@ -1,11 +1,18 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
+import { ChevronLeft, Shield } from 'lucide-react';
 import './PolicyPages.css';
 
 const PrivacyPolicy = () => {
     return (
         <div className="policy-container">
             <div className="policy-content">
-                <h1>Privacy Policy</h1>
+                <div style={{ marginBottom: '24px' }}>
+                    <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)', textDecoration: 'none', fontWeight: 500 }}>
+                        <ChevronLeft size={16} /> Back to Home
+                    </Link>
+                </div>
+                <h1 style={{ display: 'flex', alignItems: 'center', gap: '12px' }}><Shield size={32} color="var(--primary)" /> Privacy Policy</h1>
                 <p className="last-updated">Last Updated: March 1, 2026</p>
 
                 <section>

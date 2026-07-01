@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { CheckCircle, XCircle, AlertTriangle, Info, X } from 'lucide-react';
+import { CheckCircle, XCircle, AlertTriangle, Info, X, ShieldAlert } from 'lucide-react';
 import './ToastNotification.css';
 
 // ==================== TOAST NOTIFICATION COMPONENT ====================
@@ -39,7 +39,8 @@ function ToastItem({ toast, onRemove }) {
         success: <CheckCircle size={18} strokeWidth={2} />,
         error: <XCircle size={18} strokeWidth={2} />,
         warning: <AlertTriangle size={18} strokeWidth={2} />,
-        info: <Info size={18} strokeWidth={2} />
+        info: <Info size={18} strokeWidth={2} />,
+        'meta-policy': <ShieldAlert size={18} strokeWidth={2.5} />
     };
 
     const type = toast.type || 'info';

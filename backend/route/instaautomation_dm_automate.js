@@ -27,7 +27,8 @@ async function processDirectMessage(event, igUserId, helpers) {
         resolveUserIdMapping, 
         acquireConversationLock, 
         sendDirectMessage, 
-        sendGenericTemplate 
+        sendGenericTemplate,
+        passThreadControl
     } = helpers;
 
     const senderId = String(event.sender.id);
@@ -80,6 +81,63 @@ async function processDirectMessage(event, igUserId, helpers) {
 
     const existingConv = await Conversation.findOne({ conversationId });
     const currentUnread = existingConv ? existingConv.unreadCount : 0;
+    
+    // ==================== 1. HUMAN HANDOVER PROTOCOL (META COMPLIANCE) ====================
+    if (existingConv && existingConv.automationPausedUntil && new Date() < existingConv.automationPausedUntil) {
+        console.log(`[Webhook] ⏸️ Automation is PAUSED for ${conversationId} until ${existingConv.automationPausedUntil}`);
+        // Still update the message history but DO NOT reply.
+        await Conversation.updateOne({ conversationId }, { lastMessage: messageData, lastMessageTime: event.timestamp, $inc: { unreadCount: 1 } });
+        return;
+    }
+
+    // ==================== 2. MESSAGE TYPE SAFETY (META COMPLIANCE) ====================
+    const msgText = (messageData.text || '').toLowerCase().trim();
+    if (!msgText) {
+        console.log(`[Webhook] 📎 Message from ${senderId} contains no text (likely media/audio). Bypassing AI processing.`);
+        await Conversation.updateOne(
+            { conversationId }, 
+            { 
+                conversationId, userId: igUserIdMapped, senderId, recipientId,
+                lastMessage: messageData, lastMessageTime: event.timestamp, 
+                unreadCount: currentUnread + 1 
+            },
+            { upsert: true }
+        );
+        return;
+    }
+
+    const handoverKeywords = ['human', 'agent', 'stop bot', 'real person', 'talk to human', 'customer service'];
+    if (handoverKeywords.some(kw => msgText === kw || msgText.includes(` ${kw} `) || msgText.startsWith(`${kw} `) || msgText.endsWith(` ${kw}`))) {
+        console.log(`[Webhook] 🚨 Human Handover requested by ${senderId}. Pausing automation for 24h.`);
+        const pausedUntil = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+        
+        await Conversation.findOneAndUpdate(
+            { conversationId },
+            { 
+                conversationId, userId: igUserIdMapped, senderId, recipientId,
+                automationPausedUntil: pausedUntil,
+                lastMessage: messageData, 
+                lastMessageTime: event.timestamp, 
+                unreadCount: currentUnread + 1,
+                priorityTag: 'Support'
+            },
+            { upsert: true, new: true }
+        );
+        
+        // Send a polite handover message
+        const tokenData = await Token.findOne({ userId: igUserIdMapped }).lean();
+        if (tokenData && tokenData.accessToken) {
+            await sendDirectMessage(igUserId, senderId, "I've paused the bot. A human will be with you shortly! 🙌", tokenData.accessToken);
+            
+            // ── META HANDOVER PROTOCOL (COMPLIANCE) ──
+            if (passThreadControl) {
+                await passThreadControl(igUserId, senderId, tokenData.accessToken);
+            }
+        }
+        return;
+    }
+    // ====================================================================================
+
     const isActivelyNegotiating = existingConv && existingConv.negotiationData && ['negotiating', 'drafted', 'contract_prep'].includes(existingConv.negotiationData.status);
 
     // Triage the message to determine priority

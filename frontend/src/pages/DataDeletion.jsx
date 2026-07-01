@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { ChevronLeft, Trash2 } from 'lucide-react';
 import './PolicyPages.css';
 
 const DataDeletion = () => {
@@ -22,9 +24,14 @@ const DataDeletion = () => {
     return (
         <div className="policy-container">
             <div className="policy-content data-deletion-page">
+                <div style={{ marginBottom: '24px' }}>
+                    <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)', textDecoration: 'none', fontWeight: 500 }}>
+                        <ChevronLeft size={16} /> Back to Home
+                    </Link>
+                </div>
                 <div className="deletion-header">
-                    <h1>Data Deletion Request</h1>
-                    <p className="subtitle">Take complete control over your data. Request account deletion and data removal.</p>
+                    <h1 style={{ display: 'flex', alignItems: 'center', gap: '12px' }}><Trash2 size={32} color="var(--primary)" /> Data Deletion Request</h1>
+                    <p className="subtitle" style={{ color: 'var(--text-muted)' }}>Take complete control over your data. Request account deletion and data removal.</p>
                 </div>
 
                 <div className="alert-box info-alert">

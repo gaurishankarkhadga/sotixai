@@ -26,6 +26,7 @@ const abuseManagementService = require('../service/abuseManagementService');
 const CreatorAsset = require('../model/CreatorAsset');
 const { processCommentToDm } = require('./instaautomation_c2d');
 const { processDirectMessage } = require('./instaautomation_dm_automate');
+const { emitToUser } = require('../service/socketService');
 
 // Instagram Graph API Configuration
 const INSTAGRAM_CONFIG = {
@@ -411,6 +412,33 @@ async function sendPrivateReply(igUserId, commentId, message, accessToken) {
     }
 }
 
+/**
+ * Passes thread control to the Page Inbox (App ID: 263902037430900).
+ * Required for Meta App Review compliance for Human Handover.
+ */
+async function passThreadControl(igUserId, recipientIGSID, accessToken) {
+    try {
+        console.log('[Handover] Passing thread control to Page Inbox for:', recipientIGSID);
+        const response = await axios.post(
+            `${INSTAGRAM_CONFIG.graphBaseUrl}/${igUserId}/pass_thread_control`,
+            {
+                recipient: { id: recipientIGSID },
+                target_app_id: 263902037430900 // Meta Page Inbox Universal App ID
+            },
+            {
+                params: { access_token: accessToken },
+                headers: { 'Content-Type': 'application/json' }
+            }
+        );
+        console.log('[Handover] Thread control passed successfully');
+        return { success: true, data: response.data };
+    } catch (error) {
+        const errorMsg = error.response?.data?.error?.message || error.message;
+        console.error('[Handover] Failed to pass thread control:', errorMsg);
+        return { success: false, error: errorMsg };
+    }
+}
+
 
 async function resolveUserIdMapping(igUserId) {
     // STRATEGY: Try 3 lookups to ALWAYS find the correct OAuth userId.
@@ -468,6 +496,15 @@ async function resolveUserIdMapping(igUserId) {
 async function scheduleAutoReply(commentData, igUserId) {
     // Resolve ID mapping (webhook ID may differ from OAuth ID)
     igUserId = await resolveUserIdMapping(igUserId);
+
+    // ── CHECK HANDOVER PROTOCOL (META COMPLIANCE) ──
+    if (commentData.senderId) {
+        const existingConv = await Conversation.findOne({ senderId: commentData.senderId, userId: igUserId });
+        if (existingConv && existingConv.automationPausedUntil && new Date() < existingConv.automationPausedUntil) {
+            console.log(`[AutoReply] ⏸️ Automation is PAUSED for user ${commentData.senderId} due to Handover Protocol. Skipping auto-reply.`);
+            return;
+        }
+    }
 
     const settings = await AutoReplySetting.findOne({ userId: igUserId });
     console.log(`[AutoReply] Settings found for ${igUserId}:`, settings ? 'Yes' : 'No');
@@ -1186,7 +1223,8 @@ async function processWebhookPayload(body) {
                             resolveUserIdMapping,
                             acquireConversationLock,
                             sendDirectMessage,
-                            sendGenericTemplate
+                            sendGenericTemplate,
+                            passThreadControl
                         });
                     }
 
@@ -1220,6 +1258,62 @@ async function processWebhookPayload(body) {
                     if (event.postback) {
                         console.log('[Webhook] Postback received:', event.postback);
                     }
+
+                    // ==================== META COMPLIANCE: HUMAN HANDOVER ====================
+                    if (event.pass_thread_control || event.take_thread_control || event.request_thread_control || event.app_roles) {
+                        // These are part of the messaging_handovers webhook group
+                        console.log(`[Webhook] 🤝 Human Handover Event received for sender ${senderId}.`);
+                        try {
+                            const mappedUserId = await resolveUserIdMapping(igUserId);
+                            const pausedUntil = new Date(Date.now() + 24 * 60 * 60 * 1000); // Pause for 24 hours
+                            await Conversation.findOneAndUpdate(
+                                { senderId: senderId, userId: mappedUserId },
+                                { automationPausedUntil: pausedUntil },
+                                { upsert: false } // Only pause if conversation exists
+                            );
+                            console.log(`[Webhook] ⏸️ Automation PAUSED for ${senderId} due to Meta Handover Protocol.`);
+                        } catch (err) {
+                            console.error('[Webhook] Failed to process Handover Protocol:', err.message);
+                        }
+                    }
+
+                    // ==================== META COMPLIANCE: RECURRING NOTIFICATIONS (OPT-INS) ====================
+                    if (event.optin) {
+                        console.log(`[Webhook] 📩 Opt-in (Recurring Notification) received from ${senderId}:`, event.optin);
+                        if (event.optin.notification_messages_token) {
+                            try {
+                                const mappedUserId = await resolveUserIdMapping(igUserId);
+                                await Conversation.findOneAndUpdate(
+                                    { senderId: senderId, userId: mappedUserId },
+                                    { notificationMessagesToken: event.optin.notification_messages_token },
+                                    { upsert: false } // Update existing conversation
+                                );
+                                console.log(`[Webhook] ✅ Saved Recurring Notification token for ${senderId}.`);
+                            } catch (err) {
+                                console.error('[Webhook] Failed to save optin token:', err.message);
+                            }
+                        }
+                    }
+                }
+
+                // ---- Handle Standby Events (standby array) ----
+                // Sent to secondary receivers when another app (e.g. Inbox) has primary thread control
+                const standby = entry.standby || [];
+                for (const event of standby) {
+                    if (event.message) {
+                        const senderId = String(event.sender.id);
+                        console.log(`[Webhook] 🤫 Standby message received from ${senderId}. App is currently secondary receiver. (Ignoring to prevent double-reply)`);
+                        try {
+                            const mappedUserId = await resolveUserIdMapping(igUserId);
+                            await Conversation.findOneAndUpdate(
+                                { senderId: senderId, userId: mappedUserId },
+                                { threadControl: 'secondary' },
+                                { upsert: false }
+                            );
+                        } catch (err) {
+                            console.error('[Webhook] Failed to process standby event:', err.message);
+                        }
+                    }
                 }
             }
 
@@ -1239,7 +1333,7 @@ async function processWebhookPayload(body) {
 router.post('/send-message', async (req, res) => {
     try {
         const token = req.query.token || req.headers.authorization?.replace('Bearer ', '');
-        const { recipientId, message } = req.body;
+        const { recipientId, message } = req.body; // Removed useHumanAgentTag to prevent Meta policy violation
 
         if (!token) {
             return res.status(401).json({
@@ -1257,18 +1351,40 @@ router.post('/send-message', async (req, res) => {
 
         console.log('[Messaging] Sending message to:', recipientId);
 
-        // Check if message is within 24-hour window
+        let payload = {
+            recipient: { id: recipientId },
+            message: { text: message }
+        };
+
+        // Check if message is within 24-hour window (Meta Compliance)
         const conversation = await Conversation.findOne({ senderId: recipientId });
 
-        if (conversation) {
+        if (conversation && conversation.lastMessageTime) {
             const lastMessageTime = conversation.lastMessageTime;
             const hoursSinceLastMessage = (Date.now() - lastMessageTime) / (1000 * 60 * 60);
 
             if (hoursSinceLastMessage > 24) {
+                // META COMPLIANCE: Automated apps cannot use HUMAN_AGENT tag. 
+                // We MUST reject the message if outside 24h window.
+                console.warn(`[Messaging] ⛔ 24-hour window expired (${Math.round(hoursSinceLastMessage)}h). Blocking automated message to prevent policy violation.`);
+                
+                // [FIX] Emit socket event to frontend so creator knows automation was blocked
+                try {
+                    emitToUser(conversation.userId, 'policy_alert', {
+                        type: '24_HOUR_WINDOW_EXPIRED',
+                        title: '⛔ Meta Policy Enforcement',
+                        message: `Automated reply blocked to prevent App Review rejection. The 24-hour Standard Messaging Window for this user expired ${Math.round(hoursSinceLastMessage - 24)} hours ago.`,
+                        recipientId: recipientId,
+                        hoursSinceLastMessage: Math.round(hoursSinceLastMessage)
+                    });
+                } catch (e) {
+                    console.error('[Socket] Failed to emit policy alert:', e.message);
+                }
+
                 return res.status(400).json({
                     success: false,
                     error: '24_HOUR_WINDOW_EXPIRED',
-                    message: 'Cannot send message - 24 hour messaging window has expired',
+                    message: 'Cannot send message - 24 hour standard messaging window has expired. Automated responses are forbidden outside 24 hours.',
                     lastMessageTime: new Date(lastMessageTime).toISOString(),
                     hoursSinceLastMessage: Math.round(hoursSinceLastMessage)
                 });
@@ -1277,10 +1393,7 @@ router.post('/send-message', async (req, res) => {
 
         const response = await axios.post(
             `${INSTAGRAM_CONFIG.graphBaseUrl}/me/messages`,
-            {
-                recipient: { id: recipientId },
-                message: { text: message }
-            },
+            payload,
             {
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -2162,10 +2275,24 @@ router.post('/deauthorize', async (req, res) => {
             const data = parseSignedRequest(signed_request);
             if (data && data.user_id) {
                 console.log('[Deauthorize] User removed app, user_id:', data.user_id);
+                const userId = data.user_id;
 
-                // Remove stored data from DB
-                await Token.deleteOne({ userId: data.user_id });
-                await Message.deleteMany({ senderId: data.user_id });
+                // META COMPLIANCE: 100% Data Wipe Required on Deauthorization
+                await Token.deleteOne({ userId });
+                await Message.deleteMany({ senderId: userId });
+                await Conversation.deleteMany({
+                    $or: [{ senderId: userId }, { recipientId: userId }]
+                });
+                await AutoReplySetting.deleteOne({ userId });
+                await DmAutoReplySetting.deleteOne({ userId });
+                await AutoReplyLog.deleteMany({ userId });
+                await DmAutoReplyLog.deleteMany({ userId });
+                await CommentToDmSetting.deleteMany({ userId });
+                await BrainAnalytics.deleteMany({ userId });
+                await CreatorPersona.deleteOne({ userId });
+                await AbuseManagementSetting.deleteOne({ userId });
+                // Note: CreatorAssets might be linked by channelId/userId, typically managed elsewhere
+                console.log('[Deauthorize] 🧹 All user data wiped successfully.');
             }
         }
 
@@ -2189,7 +2316,7 @@ router.post('/data-deletion', async (req, res) => {
                 userId = data.user_id;
                 console.log('[DataDeletion] Request received for user_id:', userId);
 
-                // Delete all user data from DB
+                // META COMPLIANCE: 100% Data Wipe Required on Data Deletion
                 await Token.deleteOne({ userId });
                 await Message.deleteMany({ senderId: userId });
                 await Conversation.deleteMany({
@@ -2197,6 +2324,13 @@ router.post('/data-deletion', async (req, res) => {
                 });
                 await AutoReplySetting.deleteOne({ userId });
                 await DmAutoReplySetting.deleteOne({ userId });
+                await AutoReplyLog.deleteMany({ userId });
+                await DmAutoReplyLog.deleteMany({ userId });
+                await CommentToDmSetting.deleteMany({ userId });
+                await BrainAnalytics.deleteMany({ userId });
+                await CreatorPersona.deleteOne({ userId });
+                await AbuseManagementSetting.deleteOne({ userId });
+                console.log('[DataDeletion] 🧹 All user data wiped successfully.');
             }
         }
 
