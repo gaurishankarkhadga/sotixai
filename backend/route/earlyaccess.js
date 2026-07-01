@@ -11,6 +11,12 @@ router.post('/register', async (req, res) => {
             return res.status(400).json({ success: false, error: 'Name and email are required.' });
         }
 
+        // Strict email validation to prevent fake/incomplete emails
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({ success: false, error: 'Please provide a valid email address.' });
+        }
+
         // Check if already registered
         const existing = await EarlyAccess.findOne({ email: email.toLowerCase() });
         if (existing) {

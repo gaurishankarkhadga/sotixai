@@ -16,6 +16,14 @@ const EarlyAccess = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        
+        // Strict email validation to prevent fake/incomplete emails
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(formData.email)) {
+            setError('Please enter a valid, complete email address (e.g., name@domain.com).');
+            return;
+        }
+
         setLoading(true);
         setError('');
 
