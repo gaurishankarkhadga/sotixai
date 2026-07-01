@@ -18,16 +18,16 @@ const EarlyAccess = () => {
         e.preventDefault();
         setLoading(true);
         setError('');
-        
+
         try {
             const response = await fetch(`${API_BASE_URL}/api/earlyaccess/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)
             });
-            
+
             const data = await response.json();
-            
+
             if (data.success) {
                 setSuccess(true);
                 setFormData({ name: '', email: '' });
@@ -44,18 +44,18 @@ const EarlyAccess = () => {
     return (
         <div className="ea-wrapper">
             <div className="ea-container">
-                
+
                 {/* Left Side: Banner / Image */}
                 <div className="ea-banner">
                     <div className="ea-banner-content">
-                        <img 
-                            src="/assets/logo-icon-transparent.png" 
-                            alt="Sotix Logo" 
+                        <img
+                            src="/assets/logo-icon-transparent.png"
+                            alt="Sotix Logo"
                             className="ea-banner-logo"
                         />
                         <h1 className="ea-banner-title">Join the Waitlist</h1>
                         <p className="ea-banner-subtitle">
-                            Be the first to experience the most powerful, AI-driven social automation platform. 
+                            Be the first to experience the most powerful, AI-driven social automation platform.
                             Built for creators who value engagement and scale.
                         </p>
                     </div>
@@ -70,7 +70,7 @@ const EarlyAccess = () => {
                                 <h3>You're on the list!</h3>
                                 <p>We'll notify you via email as soon as a spot opens up. Thank you for your interest!</p>
                             </div>
-                            <button 
+                            <button
                                 onClick={() => window.location.href = '/'}
                                 className="ea-back-btn"
                             >
@@ -90,7 +90,7 @@ const EarlyAccess = () => {
                                         {error}
                                     </div>
                                 )}
-                                
+
                                 <div className="ea-input-group">
                                     <label htmlFor="name" className="ea-label">Full Name</label>
                                     <input
@@ -100,7 +100,7 @@ const EarlyAccess = () => {
                                         value={formData.name}
                                         onChange={handleChange}
                                         required
-                                        placeholder="John Doe"
+                                        placeholder="Enter Your Name: "
                                         className="ea-input"
                                     />
                                 </div>
@@ -114,7 +114,7 @@ const EarlyAccess = () => {
                                         value={formData.email}
                                         onChange={handleChange}
                                         required
-                                        placeholder="john@example.com"
+                                        placeholder="Enter Your Email: "
                                         className="ea-input"
                                     />
                                 </div>
