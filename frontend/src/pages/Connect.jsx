@@ -242,111 +242,84 @@ function Connect() {
 
             </main>
 
-            {/* The Ultimate Feature Showcase (6 Pillars) */}
-            <section className="feature-showcase-section">
-                
-                {/* Pillar 1: Instagram Automation */}
-                <div id="showcase-1" className={`showcase-row scroll-reveal ${visibleElements['showcase-1'] ? 'in-view' : ''}`}>
-                    <div className="showcase-text-container">
-                        <div className="showcase-badge"><MessageSquare size={14} /> Instagram Automation</div>
-                        <h2 className="showcase-title">Turn Comments into Cash. Instantly.</h2>
-                        <p className="showcase-desc">Engage your audience at scale with intelligent Comment-to-DM triggers. Recognize purchase intent, filter out spam, and deliver product links automatically.</p>
-                        <div className="showcase-list">
-                            <div className="showcase-list-item"><CheckCircle2 size={18} className="showcase-list-icon" /><p>AI-Powered Keyword Recognition</p></div>
-                            <div className="showcase-list-item"><CheckCircle2 size={18} className="showcase-list-icon" /><p>Instant Direct Message Delivery</p></div>
-                            <div className="showcase-list-item"><CheckCircle2 size={18} className="showcase-list-icon" /><p>Official Meta Human Handover Protocol</p></div>
-                        </div>
+            {/* The Ultimate Feature Showcase (6 Pillars) - Clean Grid Layout */}
+            <section className="feature-grid-section">
+                <div id="grid-header" className={`section-header-centered scroll-reveal ${visibleElements['grid-header'] ? 'in-view' : ''}`}>
+                    <div className="section-badge">
+                        <Sparkles size={14} />
+                        <span>Ecosystem</span>
                     </div>
-                    <div className="showcase-image-container">
-                        <img src="/assets/mockups/insta_dm.png" alt="Instagram Automation Mockup" className="showcase-image" />
-                    </div>
+                    <h2 className="section-title-premium">Everything you need to scale.</h2>
+                    <p className="section-subtitle-premium">Six powerful tools, one seamless platform. Built for modern creators.</p>
                 </div>
 
-                {/* Pillar 2: YouTube Automation */}
-                <div id="showcase-2" className={`showcase-row reversed scroll-reveal ${visibleElements['showcase-2'] ? 'in-view' : ''}`}>
-                    <div className="showcase-text-container">
-                        <div className="showcase-badge red"><PlaySquare size={14} /> YouTube Automation</div>
-                        <h2 className="showcase-title">Engage Your Subscribers on Autopilot.</h2>
-                        <p className="showcase-desc">Don't let your community go unheard. Auto-reply to top comments, direct fans to your sponsors, and maintain high channel engagement natively.</p>
-                        <div className="showcase-list">
-                            <div className="showcase-list-item"><CheckCircle2 size={18} className="showcase-list-icon" /><p>Native YouTube v3 API Integration</p></div>
-                            <div className="showcase-list-item"><CheckCircle2 size={18} className="showcase-list-icon" /><p>Custom Comment Reply Rules</p></div>
-                            <div className="showcase-list-item"><CheckCircle2 size={18} className="showcase-list-icon" /><p>Boost Algorithm Rankings via Engagement</p></div>
+                <div className="feature-grid-container">
+                    {/* Pillar 1 */}
+                    <div id="grid-card-1" className={`feature-grid-card scroll-reveal stagger-1 ${visibleElements['grid-card-1'] ? 'in-view' : ''}`}>
+                        <div className="card-icon-wrapper purple-glow"><MessageSquare size={24} /></div>
+                        <h3>Instagram Automation</h3>
+                        <p>Turn comments into cash instantly with AI-powered keyword recognition and instant DM delivery.</p>
+                        <div className="card-mini-features">
+                            <span><CheckCircle2 size={14}/> Keyword Recognition</span>
+                            <span><CheckCircle2 size={14}/> Instant DM Delivery</span>
                         </div>
                     </div>
-                    <div className="showcase-image-container">
-                        <img src="/assets/mockups/youtube.png" alt="YouTube Automation Mockup" className="showcase-image" />
-                    </div>
-                </div>
 
-                {/* Pillar 3: Viral Content Finder */}
-                <div id="showcase-3" className={`showcase-row scroll-reveal ${visibleElements['showcase-3'] ? 'in-view' : ''}`}>
-                    <div className="showcase-text-container">
-                        <div className="showcase-badge"><TrendingUp size={14} /> Viral Finder</div>
-                        <h2 className="showcase-title">Never Run Out of Content Ideas.</h2>
-                        <p className="showcase-desc">Discover trending audio, viral video formats, and high-performing competitor posts in your niche before they peak. Ride the wave of virality.</p>
-                        <div className="showcase-list">
-                            <div className="showcase-list-item"><CheckCircle2 size={18} className="showcase-list-icon" /><p>Real-time Trending Audio Tracking</p></div>
-                            <div className="showcase-list-item"><CheckCircle2 size={18} className="showcase-list-icon" /><p>Competitor Engagement Analysis</p></div>
-                            <div className="showcase-list-item"><CheckCircle2 size={18} className="showcase-list-icon" /><p>Niche-Specific Content Discovery</p></div>
+                    {/* Pillar 2 */}
+                    <div id="grid-card-2" className={`feature-grid-card scroll-reveal stagger-2 ${visibleElements['grid-card-2'] ? 'in-view' : ''}`}>
+                        <div className="card-icon-wrapper red-glow"><PlaySquare size={24} /></div>
+                        <h3>YouTube Automation</h3>
+                        <p>Engage your subscribers on autopilot. Auto-reply to top comments and boost algorithm rankings natively.</p>
+                        <div className="card-mini-features">
+                            <span><CheckCircle2 size={14}/> Native API Integration</span>
+                            <span><CheckCircle2 size={14}/> Custom Reply Rules</span>
                         </div>
                     </div>
-                    <div className="showcase-image-container">
-                        <img src="/assets/mockups/viral_finder.png" alt="Viral Finder Mockup" className="showcase-image" />
-                    </div>
-                </div>
 
-                {/* Pillar 4: Bio-Links & Mini-Sites */}
-                <div id="showcase-4" className={`showcase-row reversed scroll-reveal ${visibleElements['showcase-4'] ? 'in-view' : ''}`}>
-                    <div className="showcase-text-container">
-                        <div className="showcase-badge blue"><Link size={14} /> Bio-Links</div>
-                        <h2 className="showcase-title">One Link to Rule Your Ecosystem.</h2>
-                        <p className="showcase-desc">Create beautiful, high-converting Link-in-Bio pages. Capture leads, sell products, and perfectly route traffic from your social profiles.</p>
-                        <div className="showcase-list">
-                            <div className="showcase-list-item"><CheckCircle2 size={18} className="showcase-list-icon" /><p>Fully Customizable Glassmorphism UI</p></div>
-                            <div className="showcase-list-item"><CheckCircle2 size={18} className="showcase-list-icon" /><p>Integrated Lead Capture Forms</p></div>
-                            <div className="showcase-list-item"><CheckCircle2 size={18} className="showcase-list-icon" /><p>Detailed Traffic Analytics</p></div>
+                    {/* Pillar 3 */}
+                    <div id="grid-card-3" className={`feature-grid-card scroll-reveal stagger-3 ${visibleElements['grid-card-3'] ? 'in-view' : ''}`}>
+                        <div className="card-icon-wrapper green-glow"><TrendingUp size={24} /></div>
+                        <h3>Viral Finder</h3>
+                        <p>Never run out of content ideas. Discover trending audio and high-performing posts in your niche before they peak.</p>
+                        <div className="card-mini-features">
+                            <span><CheckCircle2 size={14}/> Trending Audio Tracking</span>
+                            <span><CheckCircle2 size={14}/> Competitor Analysis</span>
                         </div>
                     </div>
-                    <div className="showcase-image-container">
-                        <img src="/assets/mockups/biolink.png" alt="Bio-Links Mockup" className="showcase-image" />
-                    </div>
-                </div>
 
-                {/* Pillar 5: Affiliate Hub */}
-                <div id="showcase-5" className={`showcase-row scroll-reveal ${visibleElements['showcase-5'] ? 'in-view' : ''}`}>
-                    <div className="showcase-text-container">
-                        <div className="showcase-badge"><DollarSign size={14} /> Affiliate Hub</div>
-                        <h2 className="showcase-title">Monetize Your Influence Effortlessly.</h2>
-                        <p className="showcase-desc">Manage all your partner links in one place. Track affiliate clicks, monitor revenue, and seamlessly integrate them into your DM automations.</p>
-                        <div className="showcase-list">
-                            <div className="showcase-list-item"><CheckCircle2 size={18} className="showcase-list-icon" /><p>Centralized Link Management</p></div>
-                            <div className="showcase-list-item"><CheckCircle2 size={18} className="showcase-list-icon" /><p>Advanced Click & Conversion Tracking</p></div>
-                            <div className="showcase-list-item"><CheckCircle2 size={18} className="showcase-list-icon" /><p>Direct Automation Integration</p></div>
+                    {/* Pillar 4 */}
+                    <div id="grid-card-4" className={`feature-grid-card scroll-reveal stagger-1 ${visibleElements['grid-card-4'] ? 'in-view' : ''}`}>
+                        <div className="card-icon-wrapper blue-glow"><Link size={24} /></div>
+                        <h3>Bio-Links</h3>
+                        <p>One link to rule your ecosystem. Create beautiful, high-converting pages to capture leads and route traffic.</p>
+                        <div className="card-mini-features">
+                            <span><CheckCircle2 size={14}/> Custom Glassmorphism UI</span>
+                            <span><CheckCircle2 size={14}/> Integrated Lead Capture</span>
                         </div>
                     </div>
-                    <div className="showcase-image-container">
-                        <img src="/assets/mockups/affiliate.png" alt="Affiliate Hub Mockup" className="showcase-image" />
-                    </div>
-                </div>
 
-                {/* Pillar 6: AI Abuse Moderation */}
-                <div id="showcase-6" className={`showcase-row reversed scroll-reveal ${visibleElements['showcase-6'] ? 'in-view' : ''}`}>
-                    <div className="showcase-text-container">
-                        <div className="showcase-badge red"><ShieldAlert size={14} /> Abuse Moderation</div>
-                        <h2 className="showcase-title">Protect Your Brand and Mental Health.</h2>
-                        <p className="showcase-desc">A centralized AI Toxicity Shield that automatically detects, hides, or deletes hate speech, spam, and abusive trolls across your channels in real-time.</p>
-                        <div className="showcase-list">
-                            <div className="showcase-list-item"><CheckCircle2 size={18} className="showcase-list-icon" /><p>Real-time Hate Speech Filtering</p></div>
-                            <div className="showcase-list-item"><CheckCircle2 size={18} className="showcase-list-icon" /><p>Auto-Hide/Delete Action Workflows</p></div>
-                            <div className="showcase-list-item"><CheckCircle2 size={18} className="showcase-list-icon" /><p>Comprehensive Audit Logging</p></div>
+                    {/* Pillar 5 */}
+                    <div id="grid-card-5" className={`feature-grid-card scroll-reveal stagger-2 ${visibleElements['grid-card-5'] ? 'in-view' : ''}`}>
+                        <div className="card-icon-wrapper emerald-glow"><DollarSign size={24} /></div>
+                        <h3>Affiliate Hub</h3>
+                        <p>Monetize your influence effortlessly. Track affiliate clicks, monitor revenue, and integrate links into your DMs.</p>
+                        <div className="card-mini-features">
+                            <span><CheckCircle2 size={14}/> Centralized Link Hub</span>
+                            <span><CheckCircle2 size={14}/> Advanced Conversion Tracking</span>
                         </div>
                     </div>
-                    <div className="showcase-image-container">
-                        <img src="/assets/mockups/shield.png" alt="Abuse Moderation Mockup" className="showcase-image" />
+
+                    {/* Pillar 6 */}
+                    <div id="grid-card-6" className={`feature-grid-card scroll-reveal stagger-3 ${visibleElements['grid-card-6'] ? 'in-view' : ''}`}>
+                        <div className="card-icon-wrapper orange-glow"><ShieldAlert size={24} /></div>
+                        <h3>Abuse Moderation</h3>
+                        <p>Protect your brand. Centralized AI Toxicity Shield that automatically detects and hides hate speech in real-time.</p>
+                        <div className="card-mini-features">
+                            <span><CheckCircle2 size={14}/> Real-time Hate Speech Filter</span>
+                            <span><CheckCircle2 size={14}/> Auto-Hide/Delete Workflows</span>
+                        </div>
                     </div>
                 </div>
-
             </section>
 
             {/* "How it Works" Pipeline Section */}
