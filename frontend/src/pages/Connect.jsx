@@ -242,7 +242,7 @@ function Connect() {
 
             </main>
 
-            {/* The Ultimate Feature Showcase (6 Pillars) - Clean Grid Layout */}
+            {/* The Ultimate Feature Showcase - 21st.dev Inspired Bento Grid */}
             <section className="feature-grid-section">
                 <div id="grid-header" className={`section-header-centered scroll-reveal ${visibleElements['grid-header'] ? 'in-view' : ''}`}>
                     <div className="section-badge">
@@ -253,71 +253,70 @@ function Connect() {
                     <p className="section-subtitle-premium">Six powerful tools, one seamless platform. Built for modern creators.</p>
                 </div>
 
-                <div className="feature-grid-container">
-                    {/* Pillar 1 */}
-                    <div id="grid-card-1" className={`feature-grid-card scroll-reveal stagger-1 ${visibleElements['grid-card-1'] ? 'in-view' : ''}`}>
-                        <div className="card-icon-wrapper purple-glow"><MessageSquare size={24} /></div>
-                        <h3>Instagram Automation</h3>
-                        <p>Turn comments into cash instantly with AI-powered keyword recognition and instant DM delivery.</p>
-                        <div className="card-mini-features">
-                            <span><CheckCircle2 size={14}/> Keyword Recognition</span>
-                            <span><CheckCircle2 size={14}/> Instant DM Delivery</span>
+                <div className="feature-bento-container">
+                    {/* Pillar 1 - Wide (Span 2) */}
+                    <div id="bento-1" className={`bento-card bento-wide scroll-reveal stagger-1 ${visibleElements['bento-1'] ? 'in-view' : ''}`}>
+                        <div className="bento-content">
+                            <div className="bento-icon-wrapper"><MessageSquare size={20} /></div>
+                            <h3>Instagram Automation</h3>
+                            <p>Turn comments into cash instantly with AI-powered keyword recognition and instant DM delivery.</p>
+                            <div className="bento-mini-features">
+                                <span><CheckCircle2 size={14}/> Keyword Recognition</span>
+                                <span><CheckCircle2 size={14}/> Instant Delivery</span>
+                            </div>
+                        </div>
+                        <div className="bento-bg-watermark"><MessageSquare size={120} /></div>
+                    </div>
+
+                    {/* Pillar 2 - Tall (Span 1, Row 2) */}
+                    <div id="bento-2" className={`bento-card bento-tall scroll-reveal stagger-2 ${visibleElements['bento-2'] ? 'in-view' : ''}`}>
+                        <div className="bento-content">
+                            <div className="bento-icon-wrapper"><TrendingUp size={20} /></div>
+                            <h3>Viral Finder</h3>
+                            <p>Discover trending audio and high-performing posts in your niche before they peak.</p>
+                        </div>
+                        <div className="bento-bg-watermark"><TrendingUp size={120} /></div>
+                    </div>
+
+                    {/* Pillar 3 - Square (Span 1) */}
+                    <div id="bento-3" className={`bento-card bento-square scroll-reveal stagger-3 ${visibleElements['bento-3'] ? 'in-view' : ''}`}>
+                        <div className="bento-content">
+                            <div className="bento-icon-wrapper"><PlaySquare size={20} /></div>
+                            <h3>YouTube</h3>
+                            <p>Engage subscribers on autopilot and boost rankings natively.</p>
                         </div>
                     </div>
 
-                    {/* Pillar 2 */}
-                    <div id="grid-card-2" className={`feature-grid-card scroll-reveal stagger-2 ${visibleElements['grid-card-2'] ? 'in-view' : ''}`}>
-                        <div className="card-icon-wrapper red-glow"><PlaySquare size={24} /></div>
-                        <h3>YouTube Automation</h3>
-                        <p>Engage your subscribers on autopilot. Auto-reply to top comments and boost algorithm rankings natively.</p>
-                        <div className="card-mini-features">
-                            <span><CheckCircle2 size={14}/> Native API Integration</span>
-                            <span><CheckCircle2 size={14}/> Custom Reply Rules</span>
+                    {/* Pillar 4 - Square (Span 1) */}
+                    <div id="bento-4" className={`bento-card bento-square scroll-reveal stagger-1 ${visibleElements['bento-4'] ? 'in-view' : ''}`}>
+                        <div className="bento-content">
+                            <div className="bento-icon-wrapper"><Link size={20} /></div>
+                            <h3>Bio-Links</h3>
+                            <p>Create high-converting pages to capture leads and route traffic.</p>
                         </div>
                     </div>
 
-                    {/* Pillar 3 */}
-                    <div id="grid-card-3" className={`feature-grid-card scroll-reveal stagger-3 ${visibleElements['grid-card-3'] ? 'in-view' : ''}`}>
-                        <div className="card-icon-wrapper green-glow"><TrendingUp size={24} /></div>
-                        <h3>Viral Finder</h3>
-                        <p>Never run out of content ideas. Discover trending audio and high-performing posts in your niche before they peak.</p>
-                        <div className="card-mini-features">
-                            <span><CheckCircle2 size={14}/> Trending Audio Tracking</span>
-                            <span><CheckCircle2 size={14}/> Competitor Analysis</span>
+                    {/* Pillar 5 - Square (Span 1) */}
+                    <div id="bento-5" className={`bento-card bento-square scroll-reveal stagger-2 ${visibleElements['bento-5'] ? 'in-view' : ''}`}>
+                        <div className="bento-content">
+                            <div className="bento-icon-wrapper"><DollarSign size={20} /></div>
+                            <h3>Affiliate</h3>
+                            <p>Track clicks and integrate links directly into your DMs.</p>
                         </div>
                     </div>
 
-                    {/* Pillar 4 */}
-                    <div id="grid-card-4" className={`feature-grid-card scroll-reveal stagger-1 ${visibleElements['grid-card-4'] ? 'in-view' : ''}`}>
-                        <div className="card-icon-wrapper blue-glow"><Link size={24} /></div>
-                        <h3>Bio-Links</h3>
-                        <p>One link to rule your ecosystem. Create beautiful, high-converting pages to capture leads and route traffic.</p>
-                        <div className="card-mini-features">
-                            <span><CheckCircle2 size={14}/> Custom Glassmorphism UI</span>
-                            <span><CheckCircle2 size={14}/> Integrated Lead Capture</span>
+                    {/* Pillar 6 - Wide (Span 2) */}
+                    <div id="bento-6" className={`bento-card bento-wide scroll-reveal stagger-3 ${visibleElements['bento-6'] ? 'in-view' : ''}`}>
+                        <div className="bento-content">
+                            <div className="bento-icon-wrapper"><ShieldAlert size={20} /></div>
+                            <h3>Abuse Moderation</h3>
+                            <p>Centralized AI Toxicity Shield that detects and hides hate speech in real-time.</p>
+                            <div className="bento-mini-features">
+                                <span><CheckCircle2 size={14}/> Hate Speech Filter</span>
+                                <span><CheckCircle2 size={14}/> Auto-Hide/Delete</span>
+                            </div>
                         </div>
-                    </div>
-
-                    {/* Pillar 5 */}
-                    <div id="grid-card-5" className={`feature-grid-card scroll-reveal stagger-2 ${visibleElements['grid-card-5'] ? 'in-view' : ''}`}>
-                        <div className="card-icon-wrapper emerald-glow"><DollarSign size={24} /></div>
-                        <h3>Affiliate Hub</h3>
-                        <p>Monetize your influence effortlessly. Track affiliate clicks, monitor revenue, and integrate links into your DMs.</p>
-                        <div className="card-mini-features">
-                            <span><CheckCircle2 size={14}/> Centralized Link Hub</span>
-                            <span><CheckCircle2 size={14}/> Advanced Conversion Tracking</span>
-                        </div>
-                    </div>
-
-                    {/* Pillar 6 */}
-                    <div id="grid-card-6" className={`feature-grid-card scroll-reveal stagger-3 ${visibleElements['grid-card-6'] ? 'in-view' : ''}`}>
-                        <div className="card-icon-wrapper orange-glow"><ShieldAlert size={24} /></div>
-                        <h3>Abuse Moderation</h3>
-                        <p>Protect your brand. Centralized AI Toxicity Shield that automatically detects and hides hate speech in real-time.</p>
-                        <div className="card-mini-features">
-                            <span><CheckCircle2 size={14}/> Real-time Hate Speech Filter</span>
-                            <span><CheckCircle2 size={14}/> Auto-Hide/Delete Workflows</span>
-                        </div>
+                        <div className="bento-bg-watermark"><ShieldAlert size={120} /></div>
                     </div>
                 </div>
             </section>
