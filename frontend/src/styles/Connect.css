@@ -737,129 +737,146 @@
     z-index: 10;
 }
 
-.feature-grid-container {
+.feature-bento-container {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 24px;
+    grid-auto-rows: minmax(280px, auto);
+    gap: 20px;
     margin-top: 40px;
+    width: 100%;
 }
 
-.feature-grid-card {
-    background: var(--glass-bg);
-    border: 1px solid rgba(255, 255, 255, 0.03);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
+.bento-card {
+    background: rgba(20, 20, 20, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: 24px;
     padding: 32px;
     display: flex;
     flex-direction: column;
-    gap: 16px;
-    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease, border-color 0.4s ease;
+    position: relative;
+    overflow: hidden;
+    transition: background 0.3s ease, border-color 0.3s ease;
 }
 
-.feature-grid-card:hover {
-    transform: translateY(-8px);
+.bento-card:hover {
+    background: rgba(30, 30, 30, 0.6);
     border-color: rgba(255, 255, 255, 0.1);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
 }
 
-.card-icon-wrapper {
-    width: 56px;
-    height: 56px;
-    border-radius: 16px;
+.bento-wide {
+    grid-column: span 2;
+}
+
+.bento-tall {
+    grid-column: span 1;
+    grid-row: span 2;
+}
+
+.bento-square {
+    grid-column: span 1;
+}
+
+.bento-content {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.bento-icon-wrapper {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 8px;
-}
-
-.card-icon-wrapper.purple-glow {
-    background: rgba(139, 92, 246, 0.08);
-    border: 1px solid rgba(139, 92, 246, 0.2);
-    color: #8b5cf6;
-    box-shadow: 0 0 20px rgba(139, 92, 246, 0.1);
-}
-
-.card-icon-wrapper.red-glow {
-    background: rgba(239, 68, 68, 0.08);
-    border: 1px solid rgba(239, 68, 68, 0.2);
-    color: #ef4444;
-    box-shadow: 0 0 20px rgba(239, 68, 68, 0.1);
-}
-
-.card-icon-wrapper.green-glow {
-    background: rgba(16, 185, 129, 0.08);
-    border: 1px solid rgba(16, 185, 129, 0.2);
-    color: #10b981;
-    box-shadow: 0 0 20px rgba(16, 185, 129, 0.1);
-}
-
-.card-icon-wrapper.blue-glow {
-    background: rgba(59, 130, 246, 0.08);
-    border: 1px solid rgba(59, 130, 246, 0.2);
-    color: #3b82f6;
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.1);
-}
-
-.card-icon-wrapper.emerald-glow {
-    background: rgba(52, 211, 153, 0.08);
-    border: 1px solid rgba(52, 211, 153, 0.2);
-    color: #34d399;
-    box-shadow: 0 0 20px rgba(52, 211, 153, 0.1);
-}
-
-.card-icon-wrapper.orange-glow {
-    background: rgba(245, 158, 11, 0.08);
-    border: 1px solid rgba(245, 158, 11, 0.2);
-    color: #f59e0b;
-    box-shadow: 0 0 20px rgba(245, 158, 11, 0.1);
-}
-
-.feature-grid-card h3 {
-    margin: 0;
-    font-size: 20px;
-    font-weight: 700;
+    margin-bottom: 24px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
     color: #ffffff;
+    transition: transform 0.3s ease;
 }
 
-.feature-grid-card p {
+.bento-card:hover .bento-icon-wrapper {
+    transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.bento-card h3 {
+    margin: 0 0 12px 0;
+    font-size: 22px;
+    font-weight: 600;
+    color: #ffffff;
+    letter-spacing: -0.5px;
+}
+
+.bento-card p {
     margin: 0;
-    font-size: 14px;
-    color: #94a3b8;
+    font-size: 15px;
+    color: #888888;
     line-height: 1.6;
     flex-grow: 1;
 }
 
-.card-mini-features {
+.bento-mini-features {
     display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-top: 8px;
-    padding-top: 16px;
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    gap: 16px;
+    margin-top: 24px;
 }
 
-.card-mini-features span {
+.bento-mini-features span {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     font-size: 13px;
-    color: #cbd5e1;
+    color: #a3a3a3;
+    font-weight: 500;
 }
 
-.card-mini-features svg {
-    color: #00ffaa;
+.bento-mini-features svg {
+    color: #ffffff;
+    opacity: 0.5;
+}
+
+.bento-bg-watermark {
+    position: absolute;
+    bottom: -20px;
+    right: -20px;
+    opacity: 0.02;
+    color: #ffffff;
+    z-index: 1;
+    pointer-events: none;
+    transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.5s ease;
+}
+
+.bento-card:hover .bento-bg-watermark {
+    transform: scale(1.05) translate(-10px, -10px);
+    opacity: 0.04;
 }
 
 @media (max-width: 992px) {
-    .feature-grid-container {
+    .feature-bento-container {
         grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .bento-wide {
+        grid-column: span 2;
+    }
+    
+    .bento-tall, .bento-square {
+        grid-column: span 1;
+        grid-row: span 1;
     }
 }
 
 @media (max-width: 768px) {
-    .feature-grid-container {
+    .feature-bento-container {
         grid-template-columns: 1fr;
+    }
+    
+    .bento-wide, .bento-tall, .bento-square {
+        grid-column: span 1;
     }
 }
 
