@@ -160,7 +160,7 @@ const PrivacyPolicy = () => {
                     <h2>9. Contact Us</h2>
                     <p>If you have any questions, concerns, or requests regarding this Privacy Policy or your data, please contact our Data Protection Officer:</p>
                     <ul>
-                        <li><strong>Email:</strong> privacy@sotix.com</li>
+                        <li><strong>Email:</strong> gaurishankar@sotix.in</li>
                         <li><strong>Data Deletion Workflow:</strong> <a href="/data-deletion">Submit a Deletion Request</a></li>
                     </ul>
                 </section>

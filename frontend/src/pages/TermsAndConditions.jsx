@@ -125,7 +125,7 @@ const TermsAndConditions = () => {
                     <h2>11. Contact Details</h2>
                     <p>For inquiries regarding these Terms & Conditions:</p>
                     <ul>
-                        <li><strong>Email:</strong> legal@sotix.com</li>
+                        <li><strong>Email:</strong> gaurishankar@sotix.in</li>
                         <li><strong>Privacy Concerns:</strong> See our <a href="/privacy-policy">Privacy Policy</a></li>
                     </ul>
                 </section>
