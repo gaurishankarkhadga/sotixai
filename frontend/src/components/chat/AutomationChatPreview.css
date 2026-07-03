@@ -1,0 +1,321 @@
+/* ============================================================
+   Automation Chat Preview — Visual-first, shows actual posts
+   ============================================================ */
+
+.automation-chat-preview {
+    margin-top: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+/* ── Toolbar ───────────────────────────────────────────────── */
+.acp-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.04);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.acp-toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: rgba(200, 200, 200, 0.4);
+}
+
+.acp-toolbar-left svg {
+    color: rgba(200, 200, 200, 0.4);
+}
+
+.acp-status-pill {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 99px;
+}
+
+.acp-status-pill.active {
+    color: #4ade80;
+    background: rgba(74, 222, 128, 0.1);
+    border: 1px solid rgba(74, 222, 128, 0.18);
+}
+
+.acp-status-pill.off {
+    color: rgba(200, 200, 200, 0.5);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.acp-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.acp-status-pill.active .acp-dot {
+    animation: acp-pulse 2s ease-in-out infinite;
+}
+
+@keyframes acp-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+}
+
+/* ── Content area ──────────────────────────────────────────── */
+.acp-body {
+    padding: 12px;
+}
+
+/* ── Type row ──────────────────────────────────────────────── */
+.acp-type-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.acp-type-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.acp-type-icon.comment { background: rgba(96, 165, 250, 0.12); color: #60a5fa; }
+.acp-type-icon.dm { background: rgba(167, 139, 250, 0.12); color: #a78bfa; }
+.acp-type-icon.story { background: rgba(244, 114, 182, 0.12); color: #f472b6; }
+.acp-type-icon.all { background: rgba(74, 222, 128, 0.1); color: #4ade80; }
+.acp-type-icon svg { color: inherit; }
+
+.acp-type-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: #efefef;
+}
+
+.acp-type-mode {
+    font-size: 10px;
+    color: rgba(200, 200, 200, 0.5);
+    margin-top: 1px;
+}
+
+/* ── Config tags ───────────────────────────────────────────── */
+.acp-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 10px;
+}
+
+.acp-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    color: rgba(200, 200, 200, 0.55);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 3px 7px;
+    border-radius: 6px;
+}
+
+.acp-tag svg { color: rgba(200, 200, 200, 0.35); width: 10px; height: 10px; }
+
+/* ── Media grid (actual posts/reels) ───────────────────────── */
+.acp-media-grid {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding: 2px 0;
+}
+
+.acp-media-grid::-webkit-scrollbar { display: none; }
+
+.acp-media-card {
+    flex-shrink: 0;
+    width: 90px;
+    border-radius: 10px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    transition: border-color 0.15s;
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+
+.acp-media-card:hover {
+    border-color: rgba(74, 222, 128, 0.25);
+}
+
+.acp-media-thumb {
+    width: 90px;
+    height: 90px;
+    object-fit: cover;
+    display: block;
+}
+
+.acp-media-thumb-empty {
+    width: 90px;
+    height: 90px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.03);
+    color: rgba(200, 200, 200, 0.25);
+    font-size: 24px;
+}
+
+.acp-media-footer {
+    padding: 4px 6px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.acp-media-type {
+    font-size: 8px;
+    font-weight: 600;
+    color: rgba(200, 200, 200, 0.4);
+    text-transform: uppercase;
+}
+
+.acp-active-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #4ade80;
+}
+
+/* ── All-posts note ────────────────────────────────────────── */
+.acp-all-note {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 10px;
+    background: rgba(74, 222, 128, 0.04);
+    border: 1px solid rgba(74, 222, 128, 0.08);
+    border-radius: 8px;
+    font-size: 11px;
+    color: rgba(200, 200, 200, 0.5);
+}
+
+.acp-all-note svg {
+    color: rgba(74, 222, 128, 0.4);
+    flex-shrink: 0;
+}
+
+/* ── Mobile ────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+    .acp-body { padding: 10px; }
+    .acp-media-card { width: 78px; }
+    .acp-media-thumb, .acp-media-thumb-empty { width: 78px; height: 78px; }
+}
+
+/* ── Comment-to-DM Detail Rows ─────────────────────────────── */
+.acp-c2d-details {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px 10px;
+    background: rgba(96, 165, 250, 0.04);
+    border: 1px solid rgba(96, 165, 250, 0.08);
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+.acp-detail-row {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 11px;
+    color: rgba(200, 200, 200, 0.65);
+    line-height: 1.3;
+}
+
+.acp-detail-row svg {
+    color: rgba(96, 165, 250, 0.45);
+    flex-shrink: 0;
+}
+
+.acp-detail-row strong {
+    color: rgba(230, 230, 230, 0.85);
+    font-weight: 600;
+}
+
+.acp-detail-row.acp-timer {
+    color: rgba(250, 204, 21, 0.8);
+}
+
+.acp-detail-row.acp-timer svg {
+    color: rgba(250, 204, 21, 0.6);
+}
+
+/* ── Verification Section ──────────────────────────────────── */
+.acp-verification {
+    margin-top: 8px;
+    padding: 6px 10px 8px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+}
+
+.acp-verify-title {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: rgba(200, 200, 200, 0.35);
+    margin-bottom: 6px;
+}
+
+.acp-verify-title svg {
+    color: rgba(200, 200, 200, 0.3);
+}
+
+.acp-verify-badges {
+    display: flex;
+    gap: 6px;
+}
+
+.acp-verify-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 6px;
+}
+
+.acp-verify-badge.ok {
+    color: #4ade80;
+    background: rgba(74, 222, 128, 0.08);
+    border: 1px solid rgba(74, 222, 128, 0.15);
+}
+
+.acp-verify-badge.warn {
+    color: #fbbf24;
+    background: rgba(251, 191, 36, 0.08);
+    border: 1px solid rgba(251, 191, 36, 0.15);
+}
