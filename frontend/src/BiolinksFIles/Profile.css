@@ -1,0 +1,358 @@
+/* ============================================================
+   Profile.css — Elite Creator Universe (Mobile-First Material)
+   ============================================================ */
+
+.ep-page {
+  background: var(--bg);
+  color: var(--text-primary);
+  height: 100dvh;
+  width: 100vw;
+  font-family: var(--font-family);
+  padding: 20px 16px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  background-image: radial-gradient(ellipse 80% 40% at 50% -10%, var(--grid-color), transparent);
+}
+
+.ep-container {
+  max-width: 600px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Header */
+.ep-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.ep-back-btn {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: 0;
+}
+
+.ep-back-btn svg {
+  stroke: var(--text-primary);
+  display: block;
+}
+
+/* Profile Card */
+.ep-profile-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 16px;
+}
+
+.ep-avatar-wrap {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  padding: 3px;
+  background: var(--accent-gradient);
+}
+
+.ep-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--bg);
+}
+
+.ep-name {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin: 0;
+}
+
+.ep-username {
+  font-size: 0.9rem;
+  opacity: 0.5;
+  margin: 0;
+}
+
+/* Sections */
+.ep-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ep-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px;
+}
+
+.ep-section-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+/* Cards */
+.ep-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: none;
+}
+
+@media (hover: hover) {
+  .ep-card:hover {
+    border-color: var(--border-2);
+    background: var(--surface-2);
+  }
+}
+
+/* BioLinks */
+.ep-biolinks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ep-biolink-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: var(--surface);
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+}
+
+.ep-biolink-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.ep-biolink-title {
+  font-weight: 700;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ep-biolink-path {
+  font-size: 0.8rem;
+  opacity: 0.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.ep-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.ep-icon-btn {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: 0;
+}
+
+.ep-icon-btn svg,
+.ep-edit-btn svg {
+  stroke: currentColor;
+  display: block;
+}
+
+.ep-edit-btn {
+  background: var(--primary);
+  color: #ffffff;
+  border: none;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0 12px;
+  border-radius: 10px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: all var(--transition-fast) ease;
+}
+
+.ep-edit-btn:hover {
+  background: var(--primary-hover);
+}
+
+/* Automation & Assets */
+.ep-asset-input-wrap {
+  display: flex;
+  gap: 8px;
+}
+
+.ep-input {
+  flex: 1;
+  height: 48px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text-primary);
+  padding: 0 16px;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color var(--transition-fast) ease;
+}
+
+.ep-input:focus {
+  border-color: var(--primary);
+}
+
+.ep-add-btn {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary);
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all var(--transition-fast) ease;
+}
+
+.ep-add-btn:hover {
+  background: var(--primary-hover);
+}
+
+.ep-asset-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--surface);
+  padding: 12px 16px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+}
+
+.ep-asset-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.ep-copy-btn {
+  color: var(--green);
+  background: var(--green-dim);
+  border: 1px solid var(--green);
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.75rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Toast */
+.ep-toast {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  right: 20px;
+  background: var(--surface-2);
+  border: 1px solid var(--green);
+  color: var(--text-primary);
+  padding: 14px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 1000;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+/* Utility */
+.ep-pills {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.ep-pill {
+  padding: 4px 10px;
+  background: var(--green-dim);
+  border: 1px solid var(--green);
+  border-radius: 99px;
+  color: var(--green);
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Loader */
+.ep-loader {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  color: var(--text-primary);
+}
+
+.ep-spin {
+  animation: dns-spin 1s linear infinite;
+  margin-bottom: 20px;
+  opacity: 0.5;
+}
+
+@keyframes dns-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}

@@ -1,0 +1,1044 @@
+const CreatorPersona = require('../model/CreatorPersona');
+const CreatorAsset = require('../model/CreatorAsset');
+const axios = require('axios');
+const { generateContentWithFallback } = require('./geminiClient');
+
+// Instagram Graph API base URL
+const GRAPH_BASE = `${process.env.INSTAGRAM_GRAPH_API_BASE_URL || 'https://graph.instagram.com'}/v${process.env.INSTAGRAM_GRAPH_API_VERSION || '24.0'}`;
+
+
+// ==================== HELPERS ====================
+
+function cleanJsonString(input) {
+    if (!input) return "{}";
+    let cleaned = input.trim();
+    if (cleaned.startsWith("```json")) {
+        cleaned = cleaned.replace(/^```json/, "").replace(/```$/, "");
+    } else if (cleaned.startsWith("```")) {
+        cleaned = cleaned.replace(/^```/, "").replace(/```$/, "");
+    }
+    return cleaned.trim();
+}
+
+/**
+ * Robustly parses the AI output to extract ONLY the final reply.
+ * Priority: <REPLY> tags > Last non-empty line fallback.
+ */
+function parseCleanReply(text) {
+    if (!text) return "";
+    
+    // 1. [ROOT FIX] Extract ALL <REPLY> tag contents and take the LAST one
+    // This solves issues where AI might output text first and then tags, or repeat itself.
+    const matches = [...text.matchAll(/<REPLY>([\s\S]*?)<\/REPLY>/gi)];
+    if (matches.length > 0) {
+        const extracted = matches[matches.length - 1][1].trim();
+        // Strip surrounding quotes if AI still added them inside tags
+        return extracted.replace(/^["']|["']$/g, '').trim();
+    }
+    
+    // 2. Fallback: If no tags, take the last non-empty line
+    // (This is where the AI usually puts its final answer after thinking)
+    const lines = text.trim().split('\n').filter(l => l.trim().length > 0);
+    if (lines.length > 0) {
+        const lastLine = lines[lines.length - 1].trim();
+        // Clean up common AI quotes/noise
+        return lastLine.replace(/^["']|["']$/g, '').trim();
+    }
+    
+    return text.trim().replace(/^["']|["']$/g, '');
+}
+
+/**
+ * Robust JSON extractor for structured AI responses.
+ * Tries multiple strategies to extract valid JSON:
+ * 1. <REPLY> tags (preferred)
+ * 2. Outermost curly braces { ... }
+ * 3. cleanJsonString fallback
+ * Returns parsed object or null on failure.
+ */
+function extractJson(text) {
+    if (!text) return null;
+
+    // Strategy 1: Extract from <REPLY> tags (last match wins)
+    const replyMatches = [...text.matchAll(/<REPLY>([\s\S]*?)<\/REPLY>/gi)];
+    if (replyMatches.length > 0) {
+        const tagContent = replyMatches[replyMatches.length - 1][1].trim();
+        try {
+            return JSON.parse(tagContent);
+        } catch (e) {
+            console.warn('[extractJson] <REPLY> tag content was not valid JSON, trying inner braces...');
+            // Tag content might have extra text around the JSON
+            const braceMatch = tagContent.match(/\{[\s\S]*\}/);
+            if (braceMatch) {
+                try { return JSON.parse(braceMatch[0]); } catch (_) { /* fall through */ }
+            }
+        }
+    }
+
+    // Strategy 2: Find outermost { ... } in full text
+    const braceMatch = text.match(/\{[\s\S]*\}/);
+    if (braceMatch) {
+        try {
+            return JSON.parse(braceMatch[0]);
+        } catch (e) {
+            console.warn('[extractJson] Outermost braces parse failed:', e.message);
+        }
+    }
+
+    // Strategy 3: cleanJsonString fallback
+    try {
+        return JSON.parse(cleanJsonString(text));
+    } catch (e) {
+        console.error('[extractJson] All parse strategies failed for input:', text.substring(0, 200));
+        return null;
+    }
+}
+
+function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+
+// ==================== REPLY FETCHING ====================
+
+/**
+ * Fetches creator's actual comment-reply pairs from Instagram.
+ * Goes through recent posts → comments → replies, and finds the creator's own replies.
+ */
+async function fetchCreatorReplies(userId, posts, accessToken) {
+    const replyPairs = [];
+
+    for (const post of posts) {
+        try {
+            // Fetch comments on this post
+            const commentsRes = await axios.get(`${GRAPH_BASE}/${post.id}/comments`, {
+                params: {
+                    fields: 'id,text,from{id,username},timestamp',
+                    limit: 25,
+                    access_token: accessToken
+                }
+            });
+
+            const comments = commentsRes.data.data || [];
+
+            for (const comment of comments) {
+                // Skip if no text or no from data
+                if (!comment.text || !comment.from) continue;
+
+                try {
+                    // Fetch replies to this comment
+                    const repliesRes = await axios.get(`${GRAPH_BASE}/${comment.id}/replies`, {
+                        params: {
+                            fields: 'id,text,from{id,username},timestamp',
+                            access_token: accessToken
+                        }
+                    });
+
+                    const replies = repliesRes.data.data || [];
+
+                    // Find creator's own replies
+                    for (const reply of replies) {
+                        if (reply.from && String(reply.from.id) === String(userId) && reply.text) {
+                            replyPairs.push({
+                                commentText: comment.text,
+                                commenterUsername: comment.from.username || 'unknown',
+                                creatorReply: reply.text
+                            });
+                        }
+                    }
+                } catch (replyErr) {
+                    // Some comments don't allow reply fetching — skip silently
+                    continue;
+                }
+            }
+        } catch (commentErr) {
+            // Some posts don't allow comment fetching — skip silently
+            continue;
+        }
+
+        // Rate limit protection — 200ms between posts
+        await delay(200);
+    }
+
+    console.log(`[AI-Service] Collected ${replyPairs.length} creator reply pairs from ${posts.length} posts`);
+    return replyPairs;
+}
+
+
+// ==================== PERSONA ANALYSIS ====================
+
+/**
+ * Analyzes a creator's profile by fetching their captions AND actual replies to fans.
+ * Builds a comprehensive persona for AI-powered reply mimicry.
+ *
+ * @param {string} userId - Instagram User ID
+ * @param {string} accessToken - Valid Instagram Graph API token
+ * @returns {Promise<{success: boolean, dataSource?: string, replyPairsAnalyzed?: number, reason?: string}>}
+ */
+async function analyzeProfile(userId, accessToken) {
+    console.log(`[AI-Service] Starting comprehensive persona analysis for user: ${userId}`);
+
+    try {
+        // Step 1: Fetch recent media (posts/reels)
+        console.log('[AI-Service] Fetching recent media...');
+        const mediaRes = await axios.get(`${GRAPH_BASE}/${userId}/media`, {
+            params: {
+                fields: 'id,caption,media_type,timestamp',
+                limit: 15,
+                access_token: accessToken
+            }
+        });
+
+        const posts = mediaRes.data.data || [];
+        console.log(`[AI-Service] Found ${posts.length} posts`);
+
+        // Step 2: Extract captions
+        const captions = posts
+            .filter(item => item.caption)
+            .map(item => item.caption)
+            .join("\n---\n");
+
+        // Step 3: Fetch creator's actual reply pairs
+        console.log('[AI-Service] Fetching creator reply pairs from comments...');
+        const replyPairs = await fetchCreatorReplies(userId, posts, accessToken);
+
+        if (!captions && replyPairs.length === 0) {
+            console.log('[AI-Service] No captions or replies found — cannot analyze.');
+            return { success: false, reason: 'no_data' };
+        }
+
+        // Step 4: Build the analysis prompt
+        let replyContext = '';
+        if (replyPairs.length > 0) {
+            replyContext = replyPairs
+                .slice(0, 30) // Cap at 30 pairs to keep tokens reasonable
+                .map(p => `Fan (@${p.commenterUsername}): "${p.commentText}" → Creator replied: "${p.creatorReply}"`)
+                .join("\n");
+        }
+
+        const prompt = `
+        Analyze this Instagram creator's communication style. I'm giving you TWO types of data:
+        1. Their POST CAPTIONS (how they write publicly)
+        2. Their ACTUAL REPLIES TO FANS (how they talk in conversation)
+
+        The replies are MORE important — they show the creator's real voice, not their polished caption voice.
+
+        ${captions ? `=== POST CAPTIONS ===\n${captions.substring(0, 3000)}` : '(No captions available)'}
+
+        ${replyContext ? `\n=== ACTUAL REPLIES TO FANS (MOST IMPORTANT) ===\n${replyContext}` : '(No reply data available — base analysis on captions but assume replies are shorter and more casual)'}
+
+        Create a detailed persona profile. Return a JSON object with these EXACT fields:
+        {
+            "communicationStyle": "Detailed description (e.g., 'Ultra casual, types mostly in lowercase, uses slang like fr and ngl, keeps replies under 5 words')",
+            "toneKeywords": ["keyword1", "keyword2", "keyword3", "keyword4", "keyword5"],
+            "commonPhrases": ["exact phrases they repeat often", "another one", "etc"],
+            "emojiUsage": "Specific description with actual emojis they use (e.g., 'Loves 🔥 and 😂, uses ❤️ for fan appreciation')",
+            "emojiFrequency": "heavy OR moderate OR rare OR none",
+            "sentenceLength": "Description (e.g., 'Ultra-short, 2-5 words per reply')",
+            "replyStyle": "How they reply to fans specifically (e.g., 'Super short, mirrors fan energy, uses abbreviations, never formal')",
+            "averageReplyLength": 25,
+            "lowercasePreference": true,
+            "slangPatterns": ["fr", "ngl", "lol", "haha", "tysm"],
+            "sampleReplies": [
+                { "context": "Fan reacts with wow/amazing", "reply": "Write a reply in their EXACT style" },
+                { "context": "Fan asks how are you", "reply": "Write a reply in their EXACT style" },
+                { "context": "Fan compliments their content", "reply": "Write a reply in their EXACT style" },
+                { "context": "Fan asks a simple question", "reply": "Write a reply in their EXACT style" },
+                { "context": "Fan sends a funny comment", "reply": "Write a reply in their EXACT style" },
+                { "context": "Fan says they love the creator", "reply": "Write a reply in their EXACT style" }
+            ]
+        }
+
+        CRITICAL RULES:
+        - averageReplyLength should be the ACTUAL average character count from their real replies
+        - lowercasePreference should be true if they mostly type in lowercase
+        - slangPatterns should only include slang they ACTUALLY use, not made-up ones
+        - sampleReplies must feel IDENTICAL to how this specific creator writes
+        - If reply data is limited, extrapolate from caption tone but keep replies much shorter
+        - Do NOT include markdown formatting. Return ONLY the raw JSON object.
+        `;
+
+        // Step 5: Call Gemini for analysis
+        console.log('[AI-Service] Sending data to Gemini for persona analysis...');
+        const result = await generateContentWithFallback(prompt);
+        const responseText = result.response.text();
+        const cleanedJson = cleanJsonString(responseText);
+
+        let analysisData;
+        try {
+            analysisData = JSON.parse(cleanedJson);
+        } catch (parseErr) {
+            console.error('[AI-Service] Failed to parse Gemini response:', parseErr.message);
+            console.error('[AI-Service] Raw response (first 500 chars):', responseText.substring(0, 500));
+            return { success: false, reason: 'parse_error' };
+        }
+
+        // Step 6: Save enriched persona to DB
+        const dataSource = replyPairs.length > 0 ? 'captions_and_replies' : 'captions_only';
+
+        const personaData = {
+            userId,
+            analysisTimestamp: new Date(),
+            dataSource,
+            replyPairsAnalyzed: replyPairs.length,
+            replyExamples: replyPairs.slice(0, 20).map(p => ({
+                commentText: p.commentText,
+                creatorReply: p.creatorReply
+            })),
+            ...analysisData
+        };
+
+        await CreatorPersona.findOneAndUpdate(
+            { userId },
+            personaData,
+            { upsert: true, new: true }
+        );
+
+        console.log(`[AI-Service] Persona analysis COMPLETE for ${userId}`);
+        console.log(`[AI-Service] Source: ${dataSource} | Reply pairs: ${replyPairs.length} | Avg reply length: ${analysisData.averageReplyLength || 'N/A'}`);
+
+        return { success: true, dataSource, replyPairsAnalyzed: replyPairs.length };
+
+    } catch (error) {
+        console.error('[AI-Service] Analysis failed:', error.message);
+        if (error.response) {
+            console.error('[AI-Service] API error details:', JSON.stringify(error.response.data));
+        }
+        return { success: false, reason: error.message };
+    }
+}
+
+
+// ==================== SMART REPLY GENERATION ====================
+
+/**
+ * Generates a reply that mimics the creator's actual communication style.
+ * Uses persona data (if available) to match their real reply patterns.
+ *
+ * @param {string} userId - The creator's Instagram ID
+ * @param {string} incomingText - The comment or DM text to reply to
+ * @param {string} contextType - "comment" or "dm"
+ * @param {string} senderName - Username of the person who sent the message
+ * @param {Array} customInstructions - Specific rules or messages to insert securely
+ * @returns {Promise<string>} - The generated reply text
+ */
+/**
+ * Generates a highly dynamic, emoji-free comment reply strictly for Comment-to-DM workflows.
+ * Tells the fan to check their DMs in a creator-specific way.
+ */
+async function generateDynamicC2DReply(userId, incomingText, senderName, customFallbackInstruction) {
+    try {
+        const persona = await CreatorPersona.findOne({ userId });
+
+        let prompt;
+
+        if (persona) {
+            prompt = `
+            You are this Instagram creator answering a fan comment: @${senderName}: "${incomingText}"
+            You MUST tell them you sent the link/info to their DM. 
+            
+            YOUR STYLE RULES:
+            - Tone: ${persona.communicationStyle || 'casual'}, ${(persona.toneKeywords || []).join(', ') || 'friendly'}
+            - Length: Keep it under 40 characters (extremely short, like a quick comment reply).
+            - ${persona.lowercasePreference ? 'ALWAYS type in lowercase' : 'Normal capitalization'}.
+            - CRITICAL RULE 1: ABSOLUTELY NO EMOJIS. DO NOT USE ANY EMOJIS.
+            - CRITICAL RULE 2: MAKE IT DYNAMIC. Every time you are called, say it slightly differently so it doesn't look like a bot.
+            
+            ${customFallbackInstruction ? `CUSTOM CREATOR OVERRIDE (Use this vibe/instruction): "${customFallbackInstruction}"` : ''}
+            
+            Write the single sentence reply now (NO EMOJIS!):`;
+        } else {
+            prompt = `
+            You are a creator replying to an Instagram comment: @${senderName}: "${incomingText}"
+            Tell them briefly that you sent the info to their DM. 
+            
+            CRITICAL RULES:
+            1. Under 40 characters.
+            2. VERY casual human tone.
+            3. ABSOLUTELY NO EMOJIS. DO NOT USE EMOJIS.
+            4. Make it slightly unique/dynamic.
+            
+            ${customFallbackInstruction ? `CUSTOM CREATOR OVERRIDE (Use this vibe/instruction): "${customFallbackInstruction}"` : ''}
+            
+            Write the reply now (NO EMOJIS!):`;
+        }
+
+        prompt = `SYSTEM INSTRUCTION: You are a human creator replying to comments. You never use emojis. You are dynamic and highly variable in your phrasing.\n\n` + prompt;
+        const response = await generateContentWithFallback(prompt);
+
+        if (response.error) {
+            console.error('[AI-Service] Dynamic C2D Reply error:', response.error);
+            throw new Error(response.error);
+        } else {
+            // Strip any accidental emojis using regex just in case
+            let cleanText = (response.response.text() || '').trim();
+            cleanText = cleanText.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '').trim();
+            
+            if (!cleanText) {
+                throw new Error("AI returned empty string");
+            }
+            
+            return cleanText;
+        }
+
+    } catch (error) {
+        console.error('[AI-Service] Dynamic C2D Reply generation failed:', error.message);
+        throw error;
+    }
+}
+
+async function generateSmartReply(userId, incomingText, contextType, senderName, customInstructions = []) {
+    try {
+        const persona = await CreatorPersona.findOne({ userId });
+
+        let prompt;
+
+        if (persona) {
+            console.log(`[AI-Service] Persona found for ${userId} (source: ${persona.dataSource}, ${persona.replyPairsAnalyzed} reply pairs analyzed)`);
+
+            // Build few-shot examples from ACTUAL creator replies
+            let realExamples = '';
+            if (persona.replyExamples && persona.replyExamples.length > 0) {
+                realExamples = persona.replyExamples
+                    .slice(0, 15)
+                    .map(ex => `Fan: "${ex.commentText}" → You replied: "${ex.creatorReply}"`)
+                    .join("\n");
+            }
+
+            // Build AI-generated style examples
+            let styleExamples = '';
+            if (persona.sampleReplies && persona.sampleReplies.length > 0) {
+                styleExamples = persona.sampleReplies
+                    .map(s => `- "${s.context}" → "${s.reply}"`)
+                    .join("\n");
+            }
+
+            prompt = `
+            You ARE this Instagram creator. Not an assistant. The actual human.
+
+            === YOUR STYLE (STYLE LOCK — MATCH THIS EXACTLY) ===
+            - ${persona.communicationStyle || 'casual'}, ${(persona.toneKeywords || []).join(', ') || 'friendly'}
+            - Emoji: ${persona.emojiUsage || 'moderate'} (frequency: ${persona.emojiFrequency || 'moderate'}) | Length: ~${persona.averageReplyLength || 30} chars — NEVER exceed this
+            - ${persona.lowercasePreference ? 'You ALWAYS type in lowercase — never capitalize' : 'normal caps'}
+            - Slang you use: ${(persona.slangPatterns || []).join(', ') || 'none'} — USE THESE
+            ${(persona.commonPhrases || []).length > 0 ? `- Phrases you actually use: ${persona.commonPhrases.join(', ')} — USE THESE` : ''}
+
+            ${realExamples ? `=== YOUR REAL REPLIES — COPY THIS EXACT VIBE ===\n${realExamples}\n^^^ THIS is how YOU actually talk. Match this energy, length, and tone EXACTLY. ^^^` : `=== YOUR REAL REPLIES (match this energy) ===\n(Assume you keep things short and simple, naturally conversational)`}
+
+            ${styleExamples ? `=== YOUR STYLE EXAMPLES ===\n${styleExamples}` : ''}
+            
+            ${customInstructions && customInstructions.length > 0 ? `\n=== CREATOR'S CUSTOM RULES (MUST FOLLOW — these override default behavior) ===\n${customInstructions.map((inst, i) => `${i + 1}. ${inst}`).join('\n')}\n` : ''}
+
+            === REPLY TO THIS ===
+            @${senderName}: "${incomingText}"
+
+            HARD RULES:
+            - MAX ${persona.averageReplyLength || 40} characters. This is a comment reply, NOT an essay.
+            - Match your past replies' vibe exactly — look at YOUR REAL REPLIES above
+            - React to what they ACTUALLY said — be specific
+            - 1 emoji max, only if it's your style
+            - NEVER sound like an AI assistant. You are a human texting a fan.
+            - NEVER say: "glad you liked it", "thanks for the love", "means a lot", "stay tuned", "appreciate", "Here's the link", "Great question", "Of course!", "I'd love to", "Don't hesitate"
+            - If hateful/abusive → reply "❤️" only
+            - If simple reaction ("wow", "nice") → equally short reply
+
+            CONVENIENT ISOLATION:
+            If you need to think about the response, do it OUTSIDE the tags first.
+            You MUST put your final response inside <REPLY> tags.
+            Example: <REPLY>wow 🤩</REPLY>
+            `;
+
+        } else {
+            console.log(`[AI-Service] No persona found for ${userId}, using generic creator prompt`);
+
+            prompt = `
+            You're replying to a ${contextType === 'dm' ? 'DM' : 'comment'} on your Instagram post. You're a real creator, not an AI.
+
+            ${customInstructions && customInstructions.length > 0 ? `\n=== CREATOR'S CUSTOM RULES (MUST FOLLOW — these override default behavior) ===\n${customInstructions.map((inst, i) => `${i + 1}. ${inst}`).join('\n')}\n` : ''}
+
+            @${senderName}: "${incomingText}"
+
+            SAFETY — ABSOLUTE RULES (never break these):
+            - If the comment is hateful, abusive, toxic, or contains slurs/swear words → reply with ONLY "❤️" or "😂". Do NOT engage, do NOT mirror their language.
+            - NEVER swear, curse, or use offensive/vulgar language in your reply — even if they do.
+            - NEVER insult or attack the commenter.
+            - Stay positive, chill, or neutral no matter what.
+
+            FOR NORMAL/POSITIVE COMMENTS — Match their energy:
+            - If they're hyped/excited → match that energy, be hyped back
+            - If they're asking a question → actually answer it naturally
+            - If they're being funny → be funny back or react to the humor
+            - If they're showing love → show love back genuinely
+            - If it's a simple reaction (like "wow" or "nice") → keep your reply equally short
+
+            NEVER say these (they sound like a bot):
+            - "glad you liked it" / "glad you enjoyed it"
+            - "thanks for reaching out" / "thanks for the love"
+            - "I appreciate your support" / "means a lot"
+            - "stay tuned" / "keep watching"
+            - Any generic filler that could apply to ANY comment
+
+            Your reply MUST feel specific to what @${senderName} actually said.
+
+            Style:
+            - Max 1 sentence, under 50 characters if possible
+            - Type like you're texting — lowercase ok, abbreviations ok (haha, ikr, lol, tysm, fr, ngl)
+            - 1 emoji max, only if natural
+            - No hashtags, no exclamation spam
+
+            Examples:
+            - "wow" → "ikr 😂"
+            - "this is fire" → "ayyy thank youu 🔥"
+            - "how are you" → "doing good! hbu?"
+            - "love this" → "you're the best fr"
+            - "haha nice" → "hahaa 😆"
+            - "f*** you" → "❤️"
+            - "you suck" → "😂"
+
+            You MUST put your final response inside <REPLY> tags.
+            Example: <REPLY>ikr 😂</REPLY>
+            Output ONLY the reply inside tags. You may think about your response first if needed.
+            `;
+        }
+
+        // Call Gemini
+        console.log('[AI-Service] Calling Gemini for reply generation...');
+        const result = await generateContentWithFallback(prompt);
+        const rawResponse = result.response.text();
+        const cleanReply = parseCleanReply(rawResponse);
+
+        if (!cleanReply || cleanReply.length === 0) {
+            console.warn('[AI-Service] Gemini returned empty reply, using emoji fallback');
+            return "🔥";
+        }
+
+        console.log(`[AI-Service] Reply generated: "${cleanReply}"`);
+        return cleanReply;
+
+    } catch (error) {
+        console.error('[AI-Service] Reply generation failed:', error.message);
+        return "🔥"; // Minimal fallback — only on actual errors
+    }
+}
+
+
+// ==================== COMMENT ANALYSIS (Spam/Toxic Detection) ====================
+
+/**
+ * Analyzes a comment to determine if it's spam, toxic, or genuine.
+ * Uses Gemini for fast classification — no manual keywords needed.
+ *
+ * @param {string} commentText - The comment text to analyze
+ * @param {string} senderName - Username of the commenter
+ * @returns {Promise<{shouldHide: boolean, reason: string, category: string}>}
+ */
+async function analyzeComment(commentText, senderName) {
+    try {
+        const prompt = `Classify this Instagram comment. Return ONLY a JSON object.
+
+Comment by @${senderName}: "${commentText}"
+
+Categories:
+- "genuine" = real fan interaction, compliment, question, reaction
+- "spam" = promotion, links, "follow me", fake giveaway, bot-like repetition
+- "toxic" = hate speech, bullying, slurs, harassment, threats, extremely negative
+
+Return ONLY this JSON (no markdown, no extra text):
+{"category": "genuine", "shouldHide": false, "reason": "short reason"}
+
+Rules:
+- Default to "genuine" if unsure
+- Only mark shouldHide=true for clear spam or toxic content
+- Casual slang, abbreviations, or emoji-only comments are GENUINE
+- Simple reactions like "nice", "wow", "🔥" are GENUINE`;
+
+        const result = await generateContentWithFallback(prompt);
+        const responseText = result.response.text().trim();
+        const cleaned = cleanJsonString(responseText);
+        const parsed = JSON.parse(cleaned);
+
+        console.log(`[AI-Service] Comment analysis for @${senderName}: category=${parsed.category}, shouldHide=${parsed.shouldHide}`);
+
+        return {
+            shouldHide: Boolean(parsed.shouldHide),
+            reason: parsed.reason || '',
+            category: parsed.category || 'genuine'
+        };
+    } catch (error) {
+        console.error('[AI-Service] Comment analysis failed:', error.message);
+        // Default to NOT hiding on error — safe fallback
+        return { shouldHide: false, reason: 'analysis_failed', category: 'genuine' };
+    }
+}
+
+
+// ==================== ONLINE CREATOR RESEARCH ====================
+
+/**
+ * Researches a creator's public online presence using Gemini.
+ * Builds deep understanding of their niche, brand, content themes, and audience.
+ * Results are cached in CreatorPersona.onlineResearch.
+ *
+ * @param {string} userId - Instagram User ID
+ * @param {string} username - Instagram username for research
+ * @returns {Promise<{success: boolean, research?: object}>}
+ */
+async function researchCreatorOnline(userId, username) {
+    try {
+        // Check if we already have recent research (cache for 7 days)
+        const persona = await CreatorPersona.findOne({ userId });
+        if (persona?.onlineResearch?.researchedAt) {
+            const daysSinceResearch = (Date.now() - new Date(persona.onlineResearch.researchedAt).getTime()) / (1000 * 60 * 60 * 24);
+            if (daysSinceResearch < 7) {
+                console.log(`[AI-Service] Using cached online research for @${username} (${Math.round(daysSinceResearch)}d old)`);
+                return { success: true, research: persona.onlineResearch, cached: true };
+            }
+        }
+
+        console.log(`[AI-Service] Researching @${username} online presence...`);
+
+        const prompt = `
+        You are a social media researcher. Research this Instagram creator: @${username}
+
+        Based on what you know about this creator (from your training data), provide:
+        1. Their primary NICHE (fitness, beauty, tech, comedy, education, lifestyle, etc.)
+        2. Their BRAND VOICE — how do they talk? Formal? Slang-heavy? Gen-Z energy? Professional?
+        3. What PLATFORMS are they on? (YouTube, TikTok, Twitter, blog, podcast, etc.)
+        4. Their CONTENT THEMES — what topics do they mainly cover?
+        5. Their AUDIENCE TYPE — who follows them? (teens, professionals, moms, gamers, etc.)
+        6. How do they INTERACT with fans? (casual, warm, professional, funny, etc.)
+
+        ${persona?.communicationStyle ? `For context, their Instagram communication style has been analyzed as: "${persona.communicationStyle}"` : ''}
+        ${persona?.toneKeywords?.length ? `Their tone keywords: ${persona.toneKeywords.join(', ')}` : ''}
+
+        Return ONLY a JSON object (no markdown, no extra text):
+        {
+            "niche": "primary niche",
+            "brandVoice": "detailed description of how they communicate",
+            "knownPlatforms": ["instagram", "youtube", ...],
+            "contentThemes": ["theme1", "theme2", ...],
+            "audienceType": "who their audience is",
+            "interactionStyle": "how they talk to fans in DMs"
+        }
+
+        If you don't know much about this specific creator, make reasonable inferences based on:
+        - Their username style
+        - Their communication patterns (if provided)
+        - Common patterns for creators with similar profiles
+        Be honest but helpful. Never fabricate specific facts.
+        `;
+
+        const result = await generateContentWithFallback(prompt);
+        const responseText = result.response.text();
+        const cleaned = cleanJsonString(responseText);
+        const research = JSON.parse(cleaned);
+
+        // Save to CreatorPersona
+        const onlineResearch = {
+            niche: research.niche || '',
+            brandVoice: research.brandVoice || '',
+            publicLinks: [],
+            knownPlatforms: research.knownPlatforms || [],
+            contentThemes: research.contentThemes || [],
+            audienceType: research.audienceType || '',
+            rawResearch: JSON.stringify(research),
+            researchedAt: new Date()
+        };
+
+        await CreatorPersona.findOneAndUpdate(
+            { userId },
+            { onlineResearch },
+            { upsert: true }
+        );
+
+        console.log(`[AI-Service] Online research complete for @${username}: niche=${research.niche}`);
+        return { success: true, research: onlineResearch, cached: false };
+
+    } catch (error) {
+        console.error('[AI-Service] Online research failed:', error.message);
+        return { success: false, error: error.message };
+    }
+}
+
+
+// ==================== INTENT-BASED ASSET MATCHING ====================
+
+/**
+ * Matches a user's DM message to the creator's assets using AI intent detection.
+ * Returns assets sorted by relevance, or default assets for generic messages.
+ *
+ * @param {string} incomingText - The user's DM message
+ * @param {Array} creatorAssets - Array of active CreatorAsset documents
+ * @returns {Promise<{matchedAssets: Array, isGenericMessage: boolean}>}
+ */
+async function matchCreatorAssets(incomingText, creatorAssets, chatHistory = []) {
+    try {
+        if (!creatorAssets || creatorAssets.length === 0) {
+            return { matchedAssets: [], unavailableAssets: [], isGenericMessage: true, isUnavailableRequest: false };
+        }
+
+        // Build asset catalog for AI
+        const assetCatalog = creatorAssets.map((a, i) => ({
+            index: i,
+            id: a._id.toString(),
+            type: a.type,
+            title: a.title,
+            description: a.description,
+            tags: a.tags,
+            price: a.price,
+            isDefault: a.isDefault,
+            isActive: a.isActive !== false
+        }));
+
+        let historyContext = '';
+        if (chatHistory && chatHistory.length > 0) {
+            historyContext = 'Recent chat history for context:\n' + chatHistory.map(h => `${h.role === 'assistant' ? 'Creator' : 'Fan'}: "${h.text}"`).join('\n') + '\n\n';
+        }
+
+        const prompt = `
+        A user sent this message: "${incomingText}"
+        ${historyContext}
+
+        The creator has these assets in their library (some may be inactive/disabled):
+        ${JSON.stringify(assetCatalog, null, 2)}
+
+        Analyze the user's message IN THE CONTEXT of the recent chat history to determine:
+        (CRITICAL RULE: The chat history may contain unrelated random chatter. ONLY use the history to understand if the user is continuing a PRODUCT, COURSE, or LINK related conversation. If the history is just small talk, IGNORE the history and evaluate the current message on its own.)
+        
+        1. Is this a GENERIC message (hi, hello, hey, what's up, random chat) or does the user have a SPECIFIC intent? (e.g. if the creator previously asked "want to see similar products?" and the user replies "yes", their intent is SPECIFIC to seeing similar products. In this case, match the most relevant active assets based on their original request in the history).
+        2. If specific intent — which assets are most relevant? Match by meaning, title, tags, description, or url.
+        3. If any matched asset has "isActive": true, return its ID in "matchedAssetIds".
+        4. If any matched asset has "isActive": false, return its ID in "unavailableAssetIds".
+        5. If they ask for a specific product that is not in the library at all, or if the matched asset is inactive, set "isUnavailableRequest": true.
+        6. IMPORTANT: The user may ask for MULTIPLE DIFFERENT products in a single message. Identify ALL relevant assets.
+        7. Decide shouldSendCards: Set to true ONLY IF the user explicitly asks for a link, wants to buy, or wants you to send the product (e.g., "send link", "how do i buy", "i want the course", "yes"). If they are just asking a general question about what you sell, what a product is, or chatting about the products, set shouldSendCards to false.
+
+        Return ONLY this JSON (no markdown):
+        {
+            "isGenericMessage": true/false,
+            "shouldSendCards": true/false,
+            "matchedAssetIds": ["id1", "id2"],
+            "unavailableAssetIds": ["id3"],
+            "isUnavailableRequest": true/false,
+            "matchReason": "why these assets match"
+        }
+
+        Rules:
+        - If generic → return empty matchedAssetIds and unavailableAssetIds
+        - If specific → act like a high-end salesman. NEVER dump all your products at once. Curate and return ONLY the 1 or 2 most highly relevant asset IDs. Only return more if they specifically requested multiple distinct items by name.
+        - SALESMAN BEHAVIOR: Do not overwhelm the user with links/cards. If they ask a general question ("what do you sell?", "what is the course?"), just converse with them (set shouldSendCards: false) and only match 1 relevant asset to talk about.
+        - Match by DEEP MEANING AND VIBE. Users ask for products in 50+ ways (e.g., "link plz", "send it", "where to buy", "how much?", "hook me up", "I need that", "flow", "protein"). 
+        - If they mention ANYTHING remotely related to a product, or just ask for a "link", it is SPECIFIC intent. Match it!
+        - MULTI-INTENT: "Give me your course AND the preset pack" = match BOTH assets
+        - Simple greetings/reactions ("wow", "nice", "hello", emoji-only) are GENERIC
+        - ANY question about pricing, courses, links, workouts, presets, or products = SPECIFIC
+        - ACTIVATION COMMAND RULE: If the message is an activation/configuration command from the creator (e.g., "turn on comment to dm", "enable automation", "activate"), do NOT match a specific product unless they explicitly name or refer to that product or its type (e.g., "my course", "ebook", "gym guide"). If they just ask to enable or configure comment-to-dm generally, treat it as GENERIC (isGenericMessage: true) with no product matches.
+        `;
+
+        const result = await generateContentWithFallback(prompt);
+        const responseText = result.response.text();
+        const cleaned = cleanJsonString(responseText);
+        const analysis = JSON.parse(cleaned);
+
+        let matchedAssets = [];
+        let unavailableAssets = [];
+        let isUnavailableRequest = false;
+
+        if (analysis.isGenericMessage) {
+            matchedAssets = [];
+            console.log(`[AI-Service] Generic message/text detected. No assets matched.`);
+        } else {
+            // Use AI-matched assets
+            const matchedIds = analysis.matchedAssetIds || [];
+            matchedAssets = matchedIds
+                .map(id => creatorAssets.find(a => a._id.toString() === id))
+                .filter(Boolean);
+
+            const unavailableIds = analysis.unavailableAssetIds || [];
+            unavailableAssets = unavailableIds
+                .map(id => creatorAssets.find(a => a._id.toString() === id))
+                .filter(Boolean);
+            
+            isUnavailableRequest = Boolean(analysis.isUnavailableRequest) || (unavailableAssets.length > 0 && matchedAssets.length === 0);
+
+            if (matchedAssets.length === 0 && unavailableAssets.length === 0) {
+                isUnavailableRequest = true;
+                console.log(`[AI-Service] Specific intent detected but no active or inactive assets matched.`);
+            } else {
+                console.log(`[AI-Service] Specific intent detected: "${analysis.matchReason}". Active matched: ${matchedAssets.length}, Inactive matched: ${unavailableAssets.length}`);
+            }
+        }
+
+        return {
+            matchedAssets,
+            unavailableAssets,
+            isGenericMessage: Boolean(analysis.isGenericMessage),
+            shouldSendCards: analysis.shouldSendCards !== false, // default true if undefined
+            isUnavailableRequest,
+            matchReason: analysis.matchReason || ''
+        };
+
+    } catch (error) {
+        console.error('[AI-Service] Asset matching failed:', error.message);
+        return { matchedAssets: [], unavailableAssets: [], isGenericMessage: true, shouldSendCards: false, isUnavailableRequest: false, matchReason: 'error' };
+    }
+}
+
+
+// ==================== SMART DM REPLY WITH ASSETS ====================
+
+/**
+ * Generates an AI-powered DM reply with product/link/course recommendations.
+ * Combines creator persona + online research + asset context.
+ *
+ * @param {string} userId - Creator's Instagram ID
+ * @param {string} incomingText - The user's DM message
+ * @param {string} senderName - Username of the DM sender
+ * @param {Array} matchedAssets - Assets matched by intent or defaults
+ * @param {boolean} isGenericMessage - Whether the message is generic
+ * @returns {Promise<{text: string, recommendedAssets: Array, replyType: string}>}
+ */
+async function generateSmartDMReply(userId, incomingText, senderName, matchedAssets, isGenericMessage, customInstructions = [], isUnavailableRequest = false, chatHistory = [], shouldSendCards = true) {
+    try {
+        const persona = await CreatorPersona.findOne({ userId });
+
+        // Build asset context for the prompt
+        let assetContext = '';
+        if (matchedAssets && matchedAssets.length > 0) {
+            assetContext = matchedAssets.map(a => {
+                let info = `- ${a.type.toUpperCase()}: "${a.title}"`;
+                if (a.description) info += ` — ${a.description}`;
+                if (a.url) info += ` | Link: ${a.url}`;
+                if (a.price) info += ` | Price: ${a.price}`;
+                return info;
+            }).join('\n');
+        }
+
+        let historyContext = '';
+        if (chatHistory && chatHistory.length > 0) {
+            historyContext = '=== RECENT CHAT HISTORY ===\n' + chatHistory.map(h => `${h.role === 'assistant' ? 'You' : '@' + senderName}: "${h.text}"`).join('\n') + '\n\n';
+        }
+
+        // Build persona context WITH real reply examples (BUG 8 fix)
+        let personaContext = '';
+        let realExamplesBlock = '';
+        let styleExamplesBlock = '';
+
+        if (persona) {
+            // === Core personality traits ===
+            personaContext = `
+            === YOUR PERSONALITY (STYLE LOCK — MATCH THIS EXACTLY) ===
+            - Style: ${persona.communicationStyle || 'casual and friendly'}
+            - Tone: ${(persona.toneKeywords || []).join(', ') || 'friendly'}
+            - Reply style: ${persona.replyStyle || 'casual'}
+            - Emoji usage: ${persona.emojiUsage || 'moderate'} (frequency: ${persona.emojiFrequency || 'moderate'})
+            - ${persona.lowercasePreference ? 'You ALWAYS type in lowercase — never capitalize' : 'Normal capitalization'}
+            - Average reply length: ~${persona.averageReplyLength || 40} chars — NEVER exceed this
+            - Sentence length: ${persona.sentenceLength || 'short'}
+            ${(persona.slangPatterns || []).length > 0 ? `- Your slang patterns: ${persona.slangPatterns.join(', ')} — USE THESE` : ''}
+            ${(persona.commonPhrases || []).length > 0 ? `- Phrases you actually use: ${persona.commonPhrases.join(', ')} — USE THESE` : ''}
+            `;
+
+            // === REAL reply examples from Instagram (most powerful for style matching) ===
+            if (persona.replyExamples && persona.replyExamples.length > 0) {
+                realExamplesBlock = `\n=== YOUR REAL REPLIES FROM INSTAGRAM — COPY THIS EXACT VIBE ===\n` +
+                    persona.replyExamples
+                        .slice(0, 15)
+                        .map(ex => `Fan: "${ex.commentText}" → You replied: "${ex.creatorReply}"`)
+                        .join('\n') +
+                    `\n^^^ THIS is how YOU actually talk. Match this energy, length, and tone EXACTLY. ^^^`;
+            }
+
+            // === AI-generated style examples ===
+            if (persona.sampleReplies && persona.sampleReplies.length > 0) {
+                styleExamplesBlock = `\n=== YOUR STYLE EXAMPLES ===\n` +
+                    persona.sampleReplies
+                        .map(s => `- "${s.context}" → "${s.reply}"`)
+                        .join('\n');
+            }
+
+            // === Online research / brand context ===
+            if (persona.onlineResearch?.niche) {
+                personaContext += `
+                === YOUR BRAND ===
+                - Niche: ${persona.onlineResearch.niche}
+                - Brand voice: ${persona.onlineResearch.brandVoice || 'casual'}
+                - Content themes: ${(persona.onlineResearch.contentThemes || []).join(', ')}
+                - Audience: ${persona.onlineResearch.audienceType || 'general'}
+                `;
+            } else if (persona.communicationStyle) {
+                personaContext += `
+                === YOUR BRAND ===
+                - Brand voice: ${persona.communicationStyle}
+                `;
+            }
+        }
+
+        // Build custom instructions context
+        let customContext = '';
+        if (customInstructions.length > 0) {
+            customContext = `\n=== CREATOR'S CUSTOM RULES (MUST FOLLOW — these override default behavior) ===\n${customInstructions.map((inst, i) => `${i + 1}. ${inst}`).join('\n')}\n`;
+        }
+
+        // === ANTI-AI-SPEAK RULES (BUG 9 fix — shared across all prompt variants) ===
+        const antiAiRules = `
+            === ANTI-AI-SPEAK RULES (CRITICAL — violating these means FAILURE) ===
+            You are NOT a helpful assistant. You are a HUMAN creator texting a fan from your phone.
+
+            NEVER USE THESE WORDS/PHRASES (they instantly expose you as AI):
+            - "I'd love to help you with that"
+            - "Absolutely! Here's what I have"
+            - "Thank you for reaching out"
+            - "I'm glad you're interested"
+            - "Feel free to check out"
+            - "Here is the link you wanted"
+            - "I appreciate your support"
+            - "That means a lot"
+            - "Thanks for the love"
+            - "Stay tuned"
+            - "Don't hesitate to ask"
+            - "I'd be happy to"
+            - "Great question!"
+            - "Of course!"
+            - Any sentence starting with "I" followed by a polite verb
+
+            HOW TO SOUND HUMAN:
+            - Type like you're texting — keep it conversational and direct.
+            - Be SPECIFIC to what they said — generic replies = AI.
+            - Keep it SHORT — ${persona?.averageReplyLength ? `under ${persona.averageReplyLength} chars` : 'under 60 chars'}
+            - 1 emoji max, only if it fits the context naturally.
+            - NO hashtags, NO corporate robot tone. Just be a helpful human.
+        `;
+
+        let prompt;
+
+        if (isUnavailableRequest) {
+            // The fan asked for a specific product, but the warehouse doesn't have it.
+            prompt = `
+            You ARE this Instagram creator replying to a DM. Not an assistant. The actual human.
+
+            ${personaContext}
+            ${realExamplesBlock}
+            ${styleExamplesBlock}
+            ${customContext}
+            ${antiAiRules}
+            ${historyContext}
+
+            === SITUATION ===
+            @${senderName} sent this DM: "${incomingText}"
+            This fan is asking for a specific product, course, or service but YOU DO NOT HAVE IT IN YOUR ASSETS.
+
+            HARD RULES:
+            1. Act like a helpful but casual creator.
+            2. Tell them EXACTLY: "this exact product is not available but I have similar to them if you need then I will show you" (but adapt it slightly to your specific tone/persona).
+            3. Do NOT send links. Wait for them to say "yes" to seeing the similar items.
+            4. Keep it SHORT (max 1-2 sentences). Match your real reply tone exactly (seen above).
+
+            SAFETY: If hateful → just "❤️". Never swear. ALWAYS follow Creator's Custom Rules above if any exist.
+
+            You MUST put your final response inside <REPLY> tags.
+            Example: <REPLY>sent! check your DM 🔥</REPLY>
+            Output ONLY the reply inside tags. You may think about your response first if needed.
+            `;
+        } else if (matchedAssets.length > 0) {
+            prompt = `
+            You ARE this Instagram creator replying to a DM. Not an assistant. The actual human.
+
+            ${personaContext}
+            ${realExamplesBlock}
+            ${styleExamplesBlock}
+            ${customContext}
+            ${antiAiRules}
+            ${historyContext}
+
+            === YOUR PRODUCTS/LINKS TO SHARE ===
+            ${assetContext}
+
+            === THE DM ===
+            @${senderName}: "${incomingText}"
+            ${!shouldSendCards ? '(They just asked a general question about products. Answer them conversationally. DO NOT say you are sending a link.)' : (isGenericMessage ? '(Generic/casual message — naturally drop one link after responding)' : '(They want something specific — share the relevant items directly. Say you are sending it below.)')}
+
+            HARD RULES:
+            1. MAX 1 SHORT SENTENCE. UNDER 10 WORDS. NO YAPPING.
+            2. DO NOT include URLs in your text. Just acknowledge the request.
+            3. Be friendly, clean, and extremely brief.
+
+            SAFETY: If hateful/abusive → reply with just "❤️" and NO assets will be sent.
+            ALWAYS follow Creator's Custom Rules above if any exist.
+
+            CONVENIENT ISOLATION:
+            If you need to think about the response, do it OUTSIDE the tags first.
+            You MUST put your final response inside <REPLY> tags.
+            Example: <REPLY>${!shouldSendCards ? 'I sell gym gear and workout courses! Let me know if you want the link.' : 'sending that link over now! check it out below 👇'}</REPLY>
+            `;
+
+        } else {
+            // No assets to share — just reply naturally
+            prompt = `
+            You ARE this Instagram creator replying to a DM. Not an assistant. The actual human.
+
+            ${personaContext}
+            ${realExamplesBlock}
+            ${styleExamplesBlock}
+            ${antiAiRules}
+            ${historyContext}
+
+            @${senderName}: "${incomingText}"
+
+            Reply in 1 sentence max. Like a text message. Match your personality and real reply examples above EXACTLY.
+            SAFETY: If hateful → just "❤️". Never swear.
+
+            You MUST put your final response inside <REPLY> tags.
+            Example: <REPLY>hey what's up!</REPLY>
+            Output ONLY the reply inside tags. You may think about your response first if needed.
+            `;
+        }
+
+        console.log('[AI-Service] Generating smart DM reply with Gemini...');
+        const result = await generateContentWithFallback(prompt);
+        const rawResponse = result.response.text();
+        const reply = parseCleanReply(rawResponse);
+
+        if (!reply || reply.length === 0) {
+            return { text: '🔥', recommendedAssets: [], replyType: 'text' };
+        }
+
+        // Determine reply type
+        let replyType = 'text';
+        const recommendedAssets = matchedAssets.map(a => ({
+            assetId: a._id.toString(),
+            assetTitle: a.title,
+            assetType: a.type
+        }));
+
+        if (matchedAssets.length > 0) {
+            const hasImage = matchedAssets.some(a => a.imageUrl);
+            const hasUrl = matchedAssets.some(a => a.url);
+            if (hasImage) replyType = 'image';
+            else if (hasUrl) replyType = 'text_with_link';
+            if (matchedAssets.some(a => a.type === 'product' || a.type === 'course')) {
+                replyType = 'product_recommendation';
+            }
+        }
+
+        console.log(`[AI-Service] Smart DM reply generated: type=${replyType}, assets=${recommendedAssets.length}`);
+        return { text: reply, recommendedAssets, replyType };
+
+    } catch (error) {
+        console.error('[AI-Service] Smart DM reply generation failed:', error.message);
+        return { text: '🔥', recommendedAssets: [], replyType: 'text' };
+    }
+}
+
+
+module.exports = {
+    analyzeProfile,
+    generateSmartReply,
+    analyzeComment,
+    researchCreatorOnline,
+    matchCreatorAssets,
+    generateDynamicC2DReply,
+    generateSmartDMReply,
+    parseCleanReply,
+    extractJson
+};

@@ -1,0 +1,45 @@
+services:
+  mongodb:
+    image: mongo:4.4
+    container_name: sotixai-mongodb
+    restart: always
+    ports:
+      - "27018:27017" # Map to 27018 on the host to avoid port collision with local MongoDB
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - sotixai-network
+    healthcheck:
+      test: ["CMD", "mongo", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sotixai-backend
+    restart: always
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/public:/usr/src/app/public
+    env_file:
+      - ./backend/.env # Loads env variables from backend folder to suppress terminal warnings
+    environment:
+      - NODE_ENV=production
+      - PORT=8000
+      - MONGODB_URI=mongodb://mongodb:27017/sotixai
+    depends_on:
+      - mongodb
+    networks:
+      - sotixai-network
+
+volumes:
+  mongodb_data:
+
+networks:
+  sotixai-network:
+    driver: bridge

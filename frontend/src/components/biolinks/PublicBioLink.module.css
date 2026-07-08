@@ -1,0 +1,569 @@
+/* =========================================================
+   PublicBioLink.module.css  —  Scoped CSS, zero global overrides
+   Issues fixed:
+     #3 Modern premium liquid-glass design
+     #5 Full-page scrolling enabled
+     #6 System username hiding handled via JS, style support here
+   ========================================================= */
+
+/* ── Google Font import (scoped effect only) ─────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+.pbl-page {
+  min-height: 100dvh;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  background: #06040f;
+  overflow: visible;         /* Let the browser handle all scrolling naturally */
+  -webkit-overflow-scrolling: touch;
+  -webkit-tap-highlight-color: transparent;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  scrollbar-width: none;     /* Firefox */
+  -ms-overflow-style: none;  /* IE/Edge */
+}
+
+.pbl-page::-webkit-scrollbar {
+  display: none;             /* Chrome, Safari, Opera */
+}
+
+/* Hide scrollbars on root HTML and body components inside the iframe */
+:global(html),
+:global(body) {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+:global(html)::-webkit-scrollbar,
+:global(body)::-webkit-scrollbar {
+  display: none !important;
+}
+
+/* Ambient mesh gradient background */
+.pbl-page::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 15% -5%,  rgba(139, 92, 246, 0.20) 0%, transparent 55%),
+    radial-gradient(ellipse 60% 50% at 85% 100%, rgba(59,  130, 246, 0.15) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 40% at 50% 50%,  rgba(16,   5,  40, 0.95) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Card — auto height so scroll works ──────────────────── */
+.pbl-card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 440px;
+  min-height: 100dvh;       /* at least full height on mobile */
+  height: auto;              /* grows with content — ISSUE 5 */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 52px 20px 88px;
+  box-sizing: border-box;
+}
+
+/* ── Profile section ─────────────────────────────────────── */
+.pbl-profile-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin-bottom: 24px;
+}
+
+/* ── Avatar ring — spinning conic gradient border ────────── */
+.pbl-avatar-ring {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  flex-shrink: 0;
+}
+
+.pbl-avatar-ring::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg at 50% 50%,
+    #a855f7 0deg, #3b82f6 120deg, #06b6d4 240deg, #a855f7 360deg);
+  animation: pbl-spin 4s linear infinite;
+  z-index: 0;
+}
+
+.pbl-avatar-ring::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: inherit;
+  filter: blur(10px);
+  opacity: 0.5;
+  z-index: -1;
+}
+
+@keyframes pbl-spin {
+  to { transform: rotate(360deg); }
+}
+
+.pbl-avatar-img {
+  position: relative;
+  z-index: 1;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #06040f;
+  display: block;
+}
+
+.pbl-avatar-placeholder {
+  position: relative;
+  z-index: 1;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  border: 3px solid #06040f;
+  background: rgba(139, 92, 246, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+/* ── Text ─────────────────────────────────────────────────── */
+.pbl-display-name {
+  font-size: 24px;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 4px 0 0;
+  letter-spacing: -0.5px;
+  text-align: center;
+  line-height: 1.2;
+}
+
+/* ISSUE 6: system username — shown only if clean, JS controls visibility */
+.pbl-username {
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.38);
+  margin: 0;
+  letter-spacing: 0.2px;
+}
+
+.pbl-tagline {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.60);
+  margin: 0;
+  text-align: center;
+  line-height: 1.5;
+  max-width: 290px;
+}
+
+/* ── Social platform pills ───────────────────────────────── */
+.pbl-social-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 24px;
+  width: 100%;
+}
+
+.pbl-social-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 100px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.80);
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.pbl-social-icons-compact {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 24px;
+  width: 100%;
+}
+
+.pbl-compact-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  text-decoration: none;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.pbl-compact-icon:hover {
+  transform: translateY(-2px);
+}
+
+/* ── Link/Shop tab switcher ──────────────────────────────── */
+.pbl-tab-row {
+  display: flex;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 100px;
+  padding: 4px;
+  margin-bottom: 20px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-sizing: border-box;
+}
+
+.pbl-tab-btn {
+  flex: 1;
+  padding: 9px 0;
+  border: none;
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.35);
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.pbl-tab-btn--active {
+  background: rgba(255, 255, 255, 0.13);
+  color: #ffffff;
+}
+
+/* ── Content area — links column ─────────────────────────── */
+.pbl-content-area {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+/* ── Link card — premium glassmorphism ───────────────────── */
+.pbl-link-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px 0 12px;
+  height: 58px;
+  border-radius: 18px;
+  /* liquid glass base */
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  /* subtle inner glow */
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.1),
+    0 2px 16px rgba(0,0,0,0.25);
+  text-decoration: none;
+  color: #ffffff;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  box-sizing: border-box;
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+  transition: background 0.2s, transform 0.15s;
+}
+
+/* Hover shimmer line */
+.pbl-link-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.05) 50%, transparent 100%);
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+}
+
+/* Platform color accent bar on left edge */
+.pbl-link-card-accent {
+  position: absolute;
+  left: 0;
+  top: 12px;
+  bottom: 12px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--pbl-platform-color, rgba(139,92,246,0.6));
+}
+
+.pbl-link-icon-wrap {
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  /* colored background uses CSS var set per-link by JS */
+  background: var(--pbl-platform-color-bg, rgba(255,255,255,0.08));
+  color: var(--pbl-platform-color, rgba(255,255,255,0.8));
+}
+
+.pbl-link-title {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: 0.1px;
+}
+
+.pbl-link-arrow {
+  color: rgba(255, 255, 255, 0.22);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+/* ── Shop grid ───────────────────────────────────────────── */
+.pbl-shop-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  width: 100%;
+}
+
+/* ── Product card ────────────────────────────────────────── */
+.pbl-product-card {
+  display: flex;
+  flex-direction: column;
+  border-radius: 20px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.08),
+    0 4px 20px rgba(0,0,0,0.3);
+  text-decoration: none;
+  color: #ffffff;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.15s;
+}
+
+.pbl-product-img-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  background: rgba(255, 255, 255, 0.04);
+  overflow: hidden;
+}
+
+.pbl-product-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.pbl-product-img-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.18);
+}
+
+.pbl-product-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6d28d9;
+}
+
+.pbl-product-info {
+  padding: 10px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.pbl-product-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.3;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.pbl-product-price {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0;
+}
+
+/* ── Custom elements section ─────────────────────────────── */
+.pbl-elements-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  margin-top: 12px;
+}
+
+/* ── Watermark ───────────────────────────────────────────── */
+.pbl-watermark {
+  margin-top: 40px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.18);
+  font-weight: 500;
+  letter-spacing: 0.2px;
+}
+
+.pbl-watermark a {
+  color: rgba(255, 255, 255, 0.32);
+  text-decoration: none;
+  font-weight: 700;
+}
+
+/* ── Loading state ───────────────────────────────────────── */
+.pbl-loading {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #06040f;
+  flex-direction: column;
+  gap: 16px;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.pbl-spinner {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 3px solid rgba(255,255,255,0.07);
+  border-top-color: #a855f7;
+  animation: pbl-rotate 0.75s linear infinite;
+}
+
+@keyframes pbl-rotate { to { transform: rotate(360deg); } }
+
+.pbl-loading-text {
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* ── Error / 404 state ───────────────────────────────────── */
+.pbl-error {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #06040f;
+  flex-direction: column;
+  gap: 10px;
+  padding: 32px;
+  text-align: center;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.pbl-error-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0;
+}
+
+.pbl-error-msg {
+  font-size: 14px;
+  color: rgba(255,255,255,0.38);
+  margin: 0;
+}
+
+/* ── Responsive: desktop gets card frame ─────────────────── */
+@media (min-width: 500px) {
+  .pbl-page {
+    padding: 36px 16px 60px;
+  }
+
+  .pbl-card {
+    min-height: auto;
+    border-radius: 32px;
+  }
+}
+
+/* Scoped/Global styles for preview drag handles so they occupy zero space and show on hover */
+:global(.pbl-preview-drag-handle) {
+  position: absolute !important;
+  right: 6px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  z-index: 100 !important;
+  cursor: grab !important;
+  color: rgba(255, 255, 255, 0.5) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 6px !important;
+  border-radius: 6px !important;
+  background: rgba(13, 10, 30, 0.8) !important;
+  backdrop-filter: blur(4px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  transition: opacity 0.2s ease, transform 0.2s ease !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+:global(.pbl-preview-drag-handle:active) {
+  cursor: grabbing !important;
+  opacity: 1 !important;
+}

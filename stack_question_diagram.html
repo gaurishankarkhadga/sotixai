@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Stack Permutations - Theory Question Diagram</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #ffffff;
+    color: #1a1a2e;
+    padding: 40px;
+    min-height: 100vh;
+  }
+
+  .page {
+    max-width: 900px;
+    margin: 0 auto;
+    border: 3px solid #1a1a2e;
+    border-radius: 16px;
+    padding: 40px;
+    background: #fefefe;
+  }
+
+  h1 {
+    text-align: center;
+    font-size: 22px;
+    font-weight: 900;
+    margin-bottom: 8px;
+    letter-spacing: -0.5px;
+  }
+
+  .subtitle {
+    text-align: center;
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 36px;
+    font-style: italic;
+  }
+
+  /* ─── Question Box ─── */
+  .question-box {
+    background: #f0f4ff;
+    border: 2px solid #3b5bdb;
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 36px;
+  }
+
+  .question-box .label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #3b5bdb;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 8px;
+  }
+
+  .question-box p {
+    font-size: 15px;
+    line-height: 1.6;
+    font-weight: 600;
+  }
+
+  /* ─── Diagram Section ─── */
+  .diagram-section {
+    margin-bottom: 36px;
+  }
+
+  .diagram-section h2 {
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #555;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 8px;
+  }
+
+  /* ─── Stack Flow Diagram ─── */
+  .stack-flow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    margin-bottom: 30px;
+  }
+
+  .data-box {
+    border: 2px solid #1a1a2e;
+    border-radius: 10px;
+    padding: 12px 16px;
+    text-align: center;
+    min-width: 120px;
+  }
+
+  .data-box .box-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 10px;
+    color: #888;
+  }
+
+  .data-box .elements {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .data-box .el {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 18px;
+  }
+
+  .input-box { border-color: #2b8a3e; background: #f0fff4; }
+  .input-box .el { background: #2b8a3e; color: white; }
+
+  .stack-box { border-color: #3b5bdb; background: #f0f4ff; min-width: 80px; }
+  .stack-box .el { background: #3b5bdb; color: white; }
+  .stack-box .empty-text { font-size: 11px; color: #999; padding: 20px 0; }
+
+  .output-box { border-color: #e67700; background: #fff9f0; }
+  .output-box .el { background: #e67700; color: white; }
+
+  .arrow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .arrow .arrow-line {
+    font-size: 28px;
+    color: #1a1a2e;
+    line-height: 1;
+  }
+
+  .arrow .arrow-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #666;
+    letter-spacing: 1px;
+  }
+
+  /* ─── Permutations Grid ─── */
+  .perm-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 16px;
+  }
+
+  .perm-card {
+    border: 2px solid #ddd;
+    border-radius: 10px;
+    padding: 14px;
+    text-align: center;
+    position: relative;
+    transition: all 0.2s;
+  }
+
+  .perm-card.valid {
+    border-color: #2b8a3e;
+    background: #f0fff4;
+  }
+
+  .perm-card.invalid {
+    border-color: #e03131;
+    background: #fff0f0;
+  }
+
+  .perm-card .perm-nums {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    margin-bottom: 6px;
+  }
+
+  .perm-card.valid .perm-nums { color: #2b8a3e; }
+  .perm-card.invalid .perm-nums { color: #e03131; text-decoration: line-through; }
+
+  .perm-card .perm-tag {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    display: inline-block;
+  }
+
+  .perm-card.valid .perm-tag {
+    background: #2b8a3e;
+    color: white;
+  }
+
+  .perm-card.invalid .perm-tag {
+    background: #e03131;
+    color: white;
+  }
+
+  .perm-card .sequence {
+    font-size: 9px;
+    color: #888;
+    margin-top: 6px;
+    line-height: 1.4;
+  }
+
+  /* ─── Formula Section ─── */
+  .formula-section {
+    background: #1a1a2e;
+    color: white;
+    border-radius: 12px;
+    padding: 28px;
+    text-align: center;
+    margin-bottom: 30px;
+  }
+
+  .formula-section .formula-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #aaa;
+    margin-bottom: 14px;
+  }
+
+  .formula-section .formula {
+    font-size: 26px;
+    font-weight: 900;
+    margin-bottom: 10px;
+    color: #74c0fc;
+  }
+
+  .formula-section .formula-name {
+    font-size: 18px;
+    font-weight: 700;
+    color: #ffd43b;
+    margin-bottom: 6px;
+  }
+
+  .formula-section .formula-desc {
+    font-size: 12px;
+    color: #aaa;
+    line-height: 1.5;
+  }
+
+  /* ─── Example Table ─── */
+  .example-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 16px;
+    font-size: 14px;
+  }
+
+  .example-table th {
+    background: #1a1a2e;
+    color: white;
+    padding: 10px 16px;
+    text-align: center;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .example-table th:first-child { border-radius: 8px 0 0 0; }
+  .example-table th:last-child { border-radius: 0 8px 0 0; }
+
+  .example-table td {
+    padding: 10px 16px;
+    text-align: center;
+    border-bottom: 1px solid #eee;
+    font-weight: 600;
+  }
+
+  .example-table tr:last-child td:first-child { border-radius: 0 0 0 8px; }
+  .example-table tr:last-child td:last-child { border-radius: 0 0 8px 0; }
+
+  .example-table tr:nth-child(even) { background: #f8f9fa; }
+
+  .highlight { color: #3b5bdb; font-weight: 900; }
+
+  /* ─── Note ─── */
+  .note {
+    background: #fff3bf;
+    border: 2px solid #fcc419;
+    border-radius: 10px;
+    padding: 16px 20px;
+    font-size: 13px;
+    line-height: 1.6;
+    margin-top: 30px;
+  }
+
+  .note strong { color: #e67700; }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <h1>📚 Stack Permutations & The Catalan Number</h1>
+  <p class="subtitle">Data Structures — Theory Question</p>
+
+  <!-- QUESTION -->
+  <div class="question-box">
+    <div class="label">Question</div>
+    <p>"What is the maximum number of distinct permutations that can be generated as output by passing the sequence {1, 2, 3, ..., N} through a single Stack, and what is the exact closed-form mathematical formula to calculate this count for any value of N?"</p>
+  </div>
+
+  <!-- DIAGRAM -->
+  <div class="diagram-section">
+    <h2>How It Works — Stack Permutation Flow (N = 3)</h2>
+
+    <div class="stack-flow">
+      <div class="data-box input-box">
+        <div class="box-label">Input</div>
+        <div class="elements">
+          <div class="el">1</div>
+          <div class="el">2</div>
+          <div class="el">3</div>
+        </div>
+      </div>
+
+      <div class="arrow">
+        <div class="arrow-label">Push</div>
+        <div class="arrow-line">→</div>
+      </div>
+
+      <div class="data-box stack-box">
+        <div class="box-label">Stack</div>
+        <div class="elements">
+          <div class="empty-text">Elements pass<br>through here<br>(LIFO order)</div>
+        </div>
+      </div>
+
+      <div class="arrow">
+        <div class="arrow-label">Pop</div>
+        <div class="arrow-line">→</div>
+      </div>
+
+      <div class="data-box output-box">
+        <div class="box-label">Output</div>
+        <div class="elements">
+          <div class="el">?</div>
+          <div class="el">?</div>
+          <div class="el">?</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ALL PERMUTATIONS -->
+  <div class="diagram-section">
+    <h2>All Possible Output Permutations for N = 3</h2>
+
+    <div class="perm-grid">
+      <div class="perm-card valid">
+        <div class="perm-nums">1, 2, 3</div>
+        <div class="perm-tag">✓ Valid</div>
+        <div class="sequence">push1→pop1→push2→pop2→push3→pop3</div>
+      </div>
+      <div class="perm-card valid">
+        <div class="perm-nums">1, 3, 2</div>
+        <div class="perm-tag">✓ Valid</div>
+        <div class="sequence">push1→pop1→push2→push3→pop3→pop2</div>
+      </div>
+      <div class="perm-card valid">
+        <div class="perm-nums">2, 1, 3</div>
+        <div class="perm-tag">✓ Valid</div>
+        <div class="sequence">push1→push2→pop2→pop1→push3→pop3</div>
+      </div>
+      <div class="perm-card valid">
+        <div class="perm-nums">2, 3, 1</div>
+        <div class="perm-tag">✓ Valid</div>
+        <div class="sequence">push1→push2→pop2→push3→pop3→pop1</div>
+      </div>
+      <div class="perm-card valid">
+        <div class="perm-nums">3, 2, 1</div>
+        <div class="perm-tag">✓ Valid</div>
+        <div class="sequence">push1→push2→push3→pop3→pop2→pop1</div>
+      </div>
+      <div class="perm-card invalid">
+        <div class="perm-nums">3, 1, 2</div>
+        <div class="perm-tag">✗ Impossible</div>
+        <div class="sequence">No valid push-pop sequence exists</div>
+      </div>
+    </div>
+
+    <p style="text-align:center; margin-top:16px; font-size:14px; font-weight:700; color:#1a1a2e;">
+      Total valid permutations = <span class="highlight">5</span> out of 6 (which is 3!)
+    </p>
+  </div>
+
+  <!-- FORMULA -->
+  <div class="formula-section">
+    <div class="formula-label">The Closed-Form Formula</div>
+    <div class="formula-name">Catalan Number</div>
+    <div class="formula">C(n) = (2n)! ÷ ((n+1)! × n!)</div>
+    <div class="formula-desc">
+      For N = 3: C(3) = 6! ÷ (4! × 3!) = 720 ÷ (24 × 6) = 720 ÷ 144 = <strong style="color:#ffd43b;">5 ✓</strong>
+    </div>
+  </div>
+
+  <!-- TABLE -->
+  <div class="diagram-section">
+    <h2>Catalan Numbers for Different Values of N</h2>
+    <table class="example-table">
+      <tr>
+        <th>N (Input Size)</th>
+        <th>Total Permutations (N!)</th>
+        <th>Valid Stack Permutations C(N)</th>
+        <th>Invalid Count</th>
+      </tr>
+      <tr><td>1</td><td>1</td><td class="highlight">1</td><td>0</td></tr>
+      <tr><td>2</td><td>2</td><td class="highlight">2</td><td>0</td></tr>
+      <tr><td>3</td><td>6</td><td class="highlight">5</td><td>1</td></tr>
+      <tr><td>4</td><td>24</td><td class="highlight">14</td><td>10</td></tr>
+      <tr><td>5</td><td>120</td><td class="highlight">42</td><td>78</td></tr>
+      <tr><td>6</td><td>720</td><td class="highlight">132</td><td>588</td></tr>
+      <tr><td>7</td><td>5040</td><td class="highlight">429</td><td>4611</td></tr>
+      <tr><td>10</td><td>3628800</td><td class="highlight">16796</td><td>3612004</td></tr>
+    </table>
+  </div>
+
+  <!-- NOTE -->
+  <div class="note">
+    <strong>⚠ Why this question is hard:</strong> Knowing the answer is "Catalan Number" is only 10% of the solution. The real challenge is <strong>proving WHY</strong> stack permutations follow the Catalan formula. The proof requires the <strong>Reflection Principle (André, 1887)</strong>, bijection to <strong>Dyck Paths</strong>, and the <strong>Cycle Lemma (Dvoretzky & Motzkin, 1947)</strong> — topics not covered in any standard Data Structures textbook.
+  </div>
+
+</div>
+
+</body>
+</html>

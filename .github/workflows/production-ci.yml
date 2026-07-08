@@ -1,0 +1,39 @@
+name: Production CI/CD Gatekeeper
+
+on:
+  push:
+    branches: [ "main", "testing" ]
+  pull_request:
+    branches: [ "main", "testing" ]
+
+jobs:
+  build-and-verify:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [24.14.0]
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: |
+          frontend/package-lock.json
+          backend/package-lock.json
+
+    - name: Verify Backend Dependencies
+      working-directory: ./backend
+      run: npm ci
+
+    - name: Verify Frontend Dependencies, Lint & Build
+      working-directory: ./frontend
+      run: |
+        npm ci
+        npm run lint
+        npm run build
