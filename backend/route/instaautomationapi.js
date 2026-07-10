@@ -29,12 +29,18 @@ const { processDirectMessage } = require('./instaautomation_dm_automate');
 const { emitToUser } = require('../service/socketService');
 
 // Instagram Graph API Configuration
+// NOTE: We use facebook.com/dialog/oauth (NOT api.instagram.com/oauth/authorize).
+// This is the same approach used by ManyChat, Buffer, Hootsuite, etc.
+// api.instagram.com causes a "onetap" redirect loop when users freshly log in.
+// facebook.com/dialog/oauth shows a clean Facebook login + "Allow" page every time.
 const INSTAGRAM_CONFIG = {
     appId: process.env.INSTAGRAM_APP_ID,
     appSecret: process.env.INSTAGRAM_APP_SECRET,
     redirectUri: process.env.INSTAGRAM_REDIRECT_URI,
     frontendUrl: process.env.FRONTEND_URL,
-    oauthBaseUrl: 'https://api.instagram.com/oauth',
+    facebookOAuthUrl: 'https://www.facebook.com/dialog/oauth',      // Clean login, no onetap loop
+    facebookTokenUrl: 'https://graph.facebook.com/oauth/access_token', // Token exchange for FB OAuth codes
+    oauthBaseUrl: 'https://api.instagram.com/oauth',                  // Kept for reference only
     graphBaseUrl: `${process.env.INSTAGRAM_GRAPH_API_BASE_URL || 'https://graph.instagram.com'}/v${process.env.INSTAGRAM_GRAPH_API_VERSION || '24.0'}`,
     scopes: ['instagram_business_basic', 'instagram_business_manage_messages', 'instagram_business_manage_comments', 'instagram_business_content_publish']
 };
@@ -703,6 +709,8 @@ function parseSignedRequest(signedRequest) {
 // ==================== OAUTH ROUTES ====================
 
 // Route: Get OAuth URL
+// Uses Facebook OAuth dialog (same as ManyChat/Buffer/Hootsuite) to avoid the
+// Instagram "onetap" redirect loop that traps new users who freshly log in.
 router.get('/auth', (req, res) => {
     try {
         const params = new URLSearchParams({
@@ -710,13 +718,13 @@ router.get('/auth', (req, res) => {
             redirect_uri: INSTAGRAM_CONFIG.redirectUri,
             scope: INSTAGRAM_CONFIG.scopes.join(','),
             response_type: 'code',
-            state: req.query.token || '',
-            force_reauthorization: true  // Forces the "Allow" permissions page, bypasses onetap redirect
+            state: req.query.token || ''
         });
 
-        const authUrl = `${INSTAGRAM_CONFIG.oauthBaseUrl}/authorize?${params.toString()}`;
+        // ✅ facebook.com/dialog/oauth — clean login every time, no onetap trap
+        const authUrl = `${INSTAGRAM_CONFIG.facebookOAuthUrl}?${params.toString()}`;
 
-        console.log('[OAuth] Generated authorization URL');
+        console.log('[OAuth] Generated Facebook OAuth authorization URL');
 
         res.json({
             success: true,
@@ -734,6 +742,7 @@ router.get('/auth', (req, res) => {
 });
 
 // Route: Handle OAuth Callback
+// Code arrives from facebook.com/dialog/oauth — must be exchanged at graph.facebook.com
 router.get('/callback', async (req, res) => {
     try {
         const { code, error, error_reason, error_description } = req.query;
@@ -747,63 +756,62 @@ router.get('/callback', async (req, res) => {
             return res.redirect(`${INSTAGRAM_CONFIG.frontendUrl}?error=no_code`);
         }
 
-        console.log('[OAuth] Received authorization code');
+        console.log('[OAuth] Received authorization code from Facebook dialog');
 
-        // Step 1: Exchange code for short-lived token
-        console.log('[OAuth] Exchanging code for token');
-        const tokenResponse = await axios.post(
-            `${INSTAGRAM_CONFIG.oauthBaseUrl}/access_token`,
-            new URLSearchParams({
-                client_id: INSTAGRAM_CONFIG.appId,
-                client_secret: INSTAGRAM_CONFIG.appSecret,
-                grant_type: 'authorization_code',
-                redirect_uri: INSTAGRAM_CONFIG.redirectUri,
-                code
-            }),
+        // Step 1: Exchange code for short-lived token via graph.facebook.com
+        // (Facebook OAuth codes MUST be exchanged here, not at api.instagram.com)
+        console.log('[OAuth] Exchanging code for token via graph.facebook.com');
+        const tokenResponse = await axios.get(
+            INSTAGRAM_CONFIG.facebookTokenUrl,
             {
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+                params: {
+                    client_id: INSTAGRAM_CONFIG.appId,
+                    client_secret: INSTAGRAM_CONFIG.appSecret,
+                    redirect_uri: INSTAGRAM_CONFIG.redirectUri,
+                    code
+                }
             }
         );
 
         const shortLivedToken = tokenResponse.data.access_token;
-        const userId = tokenResponse.data.user_id;
-        console.log('[OAuth] Short-lived token received for user:', userId);
+        // NOTE: Facebook token response does NOT include user_id.
+        // We fetch the Instagram user ID from graph.instagram.com/me below.
+        console.log('[OAuth] Short-lived token received from Facebook');
 
-        // Step 2: Exchange for long-lived token (60 days)
-        console.log('[OAuth] Getting long-lived token');
+        // Step 2: Exchange for long-lived token (60 days) via graph.facebook.com
+        console.log('[OAuth] Getting long-lived token via fb_exchange_token');
         const longLivedResponse = await axios.get(
-            `${INSTAGRAM_CONFIG.graphBaseUrl}/access_token`,
+            INSTAGRAM_CONFIG.facebookTokenUrl,
             {
                 params: {
-                    grant_type: 'ig_exchange_token',
+                    grant_type: 'fb_exchange_token',
+                    client_id: INSTAGRAM_CONFIG.appId,
                     client_secret: INSTAGRAM_CONFIG.appSecret,
-                    access_token: shortLivedToken
+                    fb_exchange_token: shortLivedToken
                 }
             }
         );
 
         const longLivedToken = longLivedResponse.data.access_token;
-        const expiresIn = longLivedResponse.data.expires_in;
+        const expiresIn = longLivedResponse.data.expires_in || 5184000; // 60 days fallback
         console.log('[OAuth] Long-lived token received (expires in', expiresIn, 'seconds)');
 
-        // Step 3: Fetch the user's Professional/Business Account ID required for webhooks
+        // Step 3: Get Instagram Business Account ID from graph.instagram.com/me
+        // This is the canonical Instagram user ID used for webhooks and all Graph API calls
+        let userId = null;
         let igBusinessAccountId = null;
         try {
-            console.log('[OAuth] Fetching Instagram Business Account ID for mapping...');
-            
-            // First, try to get it directly from /me (if it's already linked or business-scoped)
+            console.log('[OAuth] Fetching Instagram Business Account ID from graph.instagram.com/me...');
             const profileRes = await axios.get(`${INSTAGRAM_CONFIG.graphBaseUrl}/me`, {
                 params: { fields: 'id,username', access_token: longLivedToken }
             });
-            
-            // Logic: The webhook ID (entry.id) is often different from the OAuth Scoped ID.
-            // We'll store both. If we find a business account ID via other means, we use it.
-            // If not, Try 4 in resolveUserIdMapping will auto-heal it on the first webhook.
+            userId = profileRes.data.id;
             igBusinessAccountId = profileRes.data.id;
-            console.log(`[OAuth] Initial mapping for userId (${userId}) -> igBusinessAccountId (${igBusinessAccountId})`);
-            
+            console.log(`[OAuth] Instagram user ID resolved: ${userId} (@${profileRes.data.username})`);
         } catch (profileErr) {
-            console.error('[OAuth] Failed to fetch account info:', profileErr.message);
+            console.error('[OAuth] Failed to fetch Instagram account info:', profileErr.response?.data || profileErr.message);
+            // Cannot continue without a user ID — this is a hard failure
+            return res.redirect(`${INSTAGRAM_CONFIG.frontendUrl}?error=oauth_failed&message=${encodeURIComponent('Could not fetch Instagram account ID. Ensure the account is a Professional/Business account.')}`);
         }
 
         // --- WEBHOOK SUBSCRIPTION (CRITICAL FOR PRODUCTION) ---
@@ -824,23 +832,19 @@ router.get('/callback', async (req, res) => {
         } catch (subErr) {
             webhookSubscribed = false;
             console.error('[OAuth] Webhook auto-subscribe failed:', subErr.response?.data?.error?.message || subErr.message);
-            // We don't throw here to avoid failing the whole login, but this is critical for webhooks to work.
         }
 
         // Store token in MongoDB
         const userIdStr = String(userId);
-        
+
         const tokenUpdateData = {
             userId: userIdStr,
             accessToken: longLivedToken,
             expiresIn,
             expiresAt: new Date(Date.now() + expiresIn * 1000),
+            igBusinessAccountId: String(igBusinessAccountId),
             createdAt: new Date()
         };
-        
-        if (igBusinessAccountId) {
-            tokenUpdateData.igBusinessAccountId = String(igBusinessAccountId);
-        }
 
         await Token.findOneAndUpdate(
             { userId: userIdStr },
