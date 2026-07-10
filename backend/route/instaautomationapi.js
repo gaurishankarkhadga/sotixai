@@ -710,7 +710,8 @@ router.get('/auth', (req, res) => {
             redirect_uri: INSTAGRAM_CONFIG.redirectUri,
             scope: INSTAGRAM_CONFIG.scopes.join(','),
             response_type: 'code',
-            state: req.query.token || ''
+            state: req.query.token || '',
+            force_reauthorization: true  // Forces the "Allow" permissions page, bypasses onetap redirect
         });
 
         const authUrl = `${INSTAGRAM_CONFIG.oauthBaseUrl}/authorize?${params.toString()}`;
