@@ -122,7 +122,7 @@ function ChatHub() {
 
     useEffect(() => {
         if (token && userId) { fetchProfile(); loadChatHistory(); }
-        if (userId) { fetchActiveCount(); fetchQuota(); triggerMorningBriefing(); }
+        if (userId) { fetchActiveCount(); fetchQuota(); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [token, userId]);
 
@@ -185,32 +185,7 @@ function ChatHub() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [userId]);
 
-    // ── Morning Briefing (auto-trigger on first load of the day) ────
-    const triggerMorningBriefing = async () => {
-        try {
-            const lastBriefing = localStorage.getItem('last_briefing_date');
-            const today = new Date().toDateString();
-            if (lastBriefing === today) return; // Already shown today
 
-            // Auto-send a morning briefing request
-            localStorage.setItem('last_briefing_date', today);
-            const res = await fetch(`${API_BASE_URL}/api/chat/message`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId, message: 'morning briefing', token })
-            });
-            const data = await res.json();
-            if (data.success) {
-                setMessages(prev => [{
-                    role: 'assistant',
-                    content: data.response || 'System initialized.',
-                    actions: data.actions || [],
-                    toasts: [],
-                    timestamp: new Date().toISOString()
-                }, ...prev]);
-            }
-        } catch { /* silent */ }
-    };
 
     // ── API helpers ──────────────────────────────────────────────────
     const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -1050,7 +1025,7 @@ function ChatHub() {
                                 <div className={`msg-row ${msg.role}`} id={`msg-${i}`}>
                                     {msg.role === 'assistant' && (
                                         <div className="msg-avatar">
-                                            <img src="/assets/logo-icon-transparent.png" alt="Sotix Logo" style={{ width: '18px', height: '18px', objectFit: 'contain' }} />
+                                            <img src="/assets/logo-icon-transparent.png" alt="sotixAI Logo" style={{ width: '18px', height: '18px', objectFit: 'contain' }} />
                                         </div>
                                     )}
                                     {msg.role === 'user' && (
@@ -1132,23 +1107,7 @@ function ChatHub() {
                                             />
                                         )}
 
-                                        {/* ====== DEAL NOTIFICATION (points to CRM tab) ====== */}
-                                        {msg.actions?.some(a => a.intent === 'get_morning_briefing' && a.data?.hasPendingDeals) && (
-                                            <button
-                                                className="deal-alert-card"
-                                                onClick={() => { loadDealsData(); setActiveTab('deals'); }}
-                                                style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px', border: '1px solid rgba(59,130,246,0.3)', borderRadius: '10px', background: 'rgba(59,130,246,0.08)', width: '100%', textAlign: 'left' }}
-                                            >
-                                                <Handshake size={18} style={{ color: 'var(--primary-color)', flexShrink: 0 }} />
-                                                <div style={{ flex: 1 }}>
-                                                    <strong style={{ color: 'var(--text-primary)', fontSize: '0.95rem' }}>
-                                                        {msg.actions.find(a => a.intent === 'get_morning_briefing').data.pendingCount || 0} Brand Deal{(msg.actions.find(a => a.intent === 'get_morning_briefing').data.pendingCount || 0) !== 1 ? 's' : ''} Waiting
-                                                    </strong>
-                                                    <p style={{ color: 'var(--text-tertiary)', fontSize: '0.8rem', margin: '2px 0 0 0' }}>Tap to open the Deals CRM →</p>
-                                                </div>
-                                                <ChevronRight size={16} style={{ color: 'var(--text-tertiary)' }} />
-                                            </button>
-                                        )}
+
 
                                         <span className="msg-time">
                                             {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
@@ -1183,7 +1142,7 @@ function ChatHub() {
                         {isTyping && (
                             <div className="msg-row assistant" id="typing-indicator">
                                 <div className="msg-avatar" style={{ position: 'relative' }}>
-                                    <img src="/assets/logo-icon-transparent.png" alt="Sotix Logo" style={{ width: '18px', height: '18px', objectFit: 'contain' }} />
+                                    <img src="/assets/logo-icon-transparent.png" alt="sotixAI Logo" style={{ width: '18px', height: '18px', objectFit: 'contain' }} />
                                     <div className="logo-bot-badge mini" style={{ bottom: '-1px', right: '-1px' }}>
                                         <Bot size={7} strokeWidth={3} />
                                     </div>

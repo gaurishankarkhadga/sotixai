@@ -78,7 +78,7 @@ if (!fs.existsSync(uploadsDir)) {
 // Root route
 app.get('/', (req, res) => {
   res.json({ 
-    message: 'Sotix API Server', 
+    message: 'sotixAI API Server', 
     status: 'running',
     timestamp: new Date().toISOString()
   });

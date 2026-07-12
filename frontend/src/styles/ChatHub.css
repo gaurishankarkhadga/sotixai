@@ -2677,7 +2677,7 @@ body {
   height: 100% !important;
 }
 
-/* Glowing Bot badge overlay on Sotix "S" brand logo during AI response generation */
+/* Glowing Bot badge overlay on sotixAI "S" brand logo during AI response generation */
 .logo-bot-badge {
   position: absolute;
   bottom: -3px;

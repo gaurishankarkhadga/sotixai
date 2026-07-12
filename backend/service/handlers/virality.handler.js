@@ -36,7 +36,7 @@ module.exports = {
 
             // 3. Multi-Agent System Prompt Execution
             const systemPrompt = `
-You are the Ultimate Multi-Agent Virality Engine for Sotix. You possess the combined intelligence of an elite Competitor Analyst, a Viral Hook Scientist, and a Retention Conversion Engineer. 
+You are the Ultimate Multi-Agent Virality Engine for sotixAI. You possess the combined intelligence of an elite Competitor Analyst, a Viral Hook Scientist, and a Retention Conversion Engineer. 
 
 CREATOR PROFILE:
 - Niche: ${niche}

@@ -2,7 +2,7 @@
  * ============================================================================
  * DEAL NEGOTIATOR MODULE
  * ============================================================================
- * This file handles the "AI Deal Negotiator" logic for SotixAI.
+ * This file handles the "AI Deal Negotiator" logic for sotixAI.
  * It is responsible for autonomously negotiating brand deals, analyzing
  * creator personas, determining suggested rates, and either sending automated 
  * replies or drafting responses for manual approval based on user settings.

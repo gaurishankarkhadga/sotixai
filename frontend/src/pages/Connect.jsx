@@ -130,8 +130,8 @@ function Connect() {
             {/* Premium Navbar */}
             <nav className="premium-navbar">
                 <div className="navbar-left reveal-fade-in reveal-stagger-1">
-                    <img src="/assets/logo-icon-transparent.png" alt="Sotix Logo" className="nav-logo" />
-                    <span className="nav-brand">Sotix AI</span>
+                    <img src="/assets/logo-icon-transparent.png" alt="sotixAI Logo" className="nav-logo" />
+                    <span className="nav-brand">sotixAI</span>
                 </div>
                 <div className="navbar-center hidden-mobile reveal-fade-in reveal-stagger-2">
                     <a href="#features" className="nav-link">Platform</a>
@@ -618,7 +618,7 @@ function Connect() {
                                         </div>
                                         
                                         <div className="bio-pro-footer">
-                                            Powered by <Command size={10} color="#8b5cf6" style={{margin: '0 2px'}} /> <strong>SotixAI</strong>
+                                            Powered by <Command size={10} color="#8b5cf6" style={{margin: '0 2px'}} /> <strong>sotixAI</strong>
                                         </div>
                                     </div>
                                 </div>
@@ -643,7 +643,7 @@ function Connect() {
                     {[
                         {
                             q: "How does the Instagram integration work?",
-                            a: "It uses Meta's official Graph API. Once you authorize through Facebook OAuth, Sotix receives comment and DM webhooks in real-time, executing your automations instantly."
+                            a: "It uses Meta's official Graph API. Once you authorize through Facebook OAuth, sotixAI receives comment and DM webhooks in real-time, executing your automations instantly."
                         },
                         {
                             q: "Is my account safe from suspension?",

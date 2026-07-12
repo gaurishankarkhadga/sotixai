@@ -754,7 +754,7 @@ const PublicBioLink = () => {
         {/* ── Watermark ────────────────────────────────────── */}
         <div className={styles['pbl-watermark']}>
           <Sparkles size={10} />
-          <span>Powered by <a href="https://sotix.ai" target="_blank" rel="noopener noreferrer">Sotix AI</a></span>
+          <span>Powered by <a href="https://sotix.ai" target="_blank" rel="noopener noreferrer">sotixAI</a></span>
         </div>
 
       </div>

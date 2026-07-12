@@ -62,13 +62,13 @@ async function parseIntents(message, context) {
     if (context.recentHistory && context.recentHistory.length > 0) {
         // Exclude the very long action results from history, just keep the text
         historyText = context.recentHistory.map(m => {
-            const role = m.role === 'user' ? 'Creator' : 'Sotix';
+            const role = m.role === 'user' ? 'Creator' : 'sotixAI';
             const text = m.content ? m.content.substring(0, 150) : '';
             return `${role}: ${text}`;
         }).join('\n');
     }
 
-    const prompt = `You are the AI brain of Sotix — a social media management platform for creators.
+    const prompt = `You are the AI brain of sotixAI — a social media management platform for creators.
 Your job: understand ANYTHING the creator says (no matter how vague, messy, or creative) and convert it into structured action intents.
 
 RECENT CONVERSATION HISTORY (Use this for context, pronouns, and follow-ups):
@@ -91,10 +91,7 @@ CRITICAL RULES:
    - "band karo" / "sab band" → disable_all_automation
 7. If the creator mentions a NUMBER (like "100", "50", "24"), figure out if it's hours, comment count, or price from CONTEXT.
 8. If the creator mentions a platform name ("youtube", "insta", "all"), map it to platform preferences.
-9. Common abbreviations: "dm" = direct message, "yt" = youtube, "insta/ig" = instagram, "auto" = automation, "hrs" = hours
-10. ULTRA-FLEXIBLE: If the creator gives a CUSTOM INSTRUCTION that doesn't fit any specific intent (e.g. "never mention prices", "reply in Hindi to Indian fans", "don't share links after 10pm"), use "add_custom_instruction" with the full instruction as the param.
-11. If the creator asks "what happened", "morning update", "briefing", "catch me up", "what did you do" — use "get_morning_briefing".
-12. COMMENT-TO-DM: If the creator talks about sending DMs to people who comment, auto-DMing commenters, "comment pe dm", "send dm when they comment", etc. → use "enable_comment_to_dm". This is DIFFERENT from enable_dm_autoreply (which handles incoming DMs). Comment-to-DM = someone COMMENTS → system sends them a DM.
+
    - Extract keyword if mentioned (e.g. "if they say 'interested'" → keyword: "interested")
    - Extract commentReply if mentioned (e.g. "reply 'sent' on comment" → commentReply: "sent! 🔥")
    - Extract dmMessage if mentioned (e.g. "send them 'check your inbox'" → dmMessage: "check your inbox")
@@ -103,7 +100,7 @@ CRITICAL RULES:
    - IMPORTANT: If the creator mentions a MAX COMMENT COUNT with comment-to-dm, include "maxComments" DIRECTLY in the params. Do NOT create a separate set_comment_limit intent.
    - If the creator mentions a specific post/reel (recent, latest, first), include "targetMedia" in the params
 13. AUTO-CLARIFICATION (Human-like behavior): If the creator asks for something but is missing REQUIRED information to execute it (e.g., "Add my new course" but no URL/Price, or "Change it to 50" but history doesn't specify what "it" is), DO NOT hallucinate parameters. Instead, return the intent "request_clarification" with a param "question" asking the creator for the missing details in a natural, casual way.
-14. RESOLVING CLARIFICATIONS: If the last message from Sotix in the RECENT CONVERSATION HISTORY was a request_clarification (e.g., asking for missing details like a title, price, or link), and the creator's new message provides those details, you MUST combine these details with the unresolved intents from the previous request. For example, if they previously wanted to "create a biolink and add an ebook product" (which was blocked/requested for clarification), and they now reply with the ebook title/link, you MUST output BOTH the "add_asset" intent (with the new params) AND the "create_biolink" intent so that both are executed.
+14. RESOLVING CLARIFICATIONS: If the last message from sotixAI in the RECENT CONVERSATION HISTORY was a request_clarification (e.g., asking for missing details like a title, price, or link), and the creator's new message provides those details, you MUST combine these details with the unresolved intents from the previous request. For example, if they previously wanted to "create a biolink and add an ebook product" (which was blocked/requested for clarification), and they now reply with the ebook title/link, you MUST output BOTH the "add_asset" intent (with the new params) AND the "create_biolink" intent so that both are executed.
 
 AVAILABLE INTENTS:
 ${intentList}
@@ -122,7 +119,6 @@ ${intentList}
 - list_custom_instructions (show all custom rules)
 - remove_custom_instruction (remove a rule by number — params: {index: 1})
 - clear_custom_instructions (remove all custom rules)
-- get_morning_briefing (24h activity summary, morning update, "what happened")
 - request_clarification (when missing REQUIRED info to execute a command — params: {question: "What's the link for the course?"})
 - general_chat (for general questions, greetings, help, feedback, or anything not matching above)
 
@@ -136,7 +132,6 @@ EXAMPLES (covering diverse real-world inputs):
 User: "replies on" → [{"intent": "enable_comment_autoreply", "params": {"mode": "ai_smart"}, "confidence": 0.85}]
 User: "stop dms" → [{"intent": "disable_dm_autoreply", "params": {}, "confidence": 0.9}]
 User: "add course 29$ xyz.com" → [{"intent": "add_asset", "params": {"type": "course", "price": "29", "url": "xyz.com", "title": "Course"}, "confidence": 0.8}]
-User: "what's happening" → [{"intent": "get_morning_briefing", "params": {}, "confidence": 0.85}]
 User: "turn on replies and find deals" → [{"intent": "enable_comment_autoreply", "params": {"mode": "ai_smart"}, "confidence": 0.9}, {"intent": "find_brand_deals", "params": {}, "confidence": 0.9}]
 User: "deal milao" → [{"intent": "find_brand_deals", "params": {}, "confidence": 0.85}]
 User: "hello" → [{"intent": "general_chat", "params": {}, "confidence": 1.0}]
@@ -219,13 +214,6 @@ User: "Approve Nike but tell Adidas to double their budget, and reject Puma" →
 User: "Set latest draft to use my media kit" → [{"intent": "regenerate_deal_draft", "params": {"brandName": "recent", "instructions": "Attach media kit link"}, "confidence": 0.9}]
 User: "Set a global rule: never accept sports deals for under $1000" → [{"intent": "set_deal_rate_rule", "params": {"brandIndustry": "sports", "minRate": 1000}, "confidence": 0.95}]
 User: "Generate a contract summary for the Nike deal" → [{"intent": "generate_contract_summary", "params": {"brandName": "Nike"}, "confidence": 0.95}]
-
-MORNING BRIEFING EXAMPLES:
-User: "good morning" → [{"intent": "get_morning_briefing", "params": {}, "confidence": 0.8}]
-User: "catch me up" → [{"intent": "get_morning_briefing", "params": {}, "confidence": 0.9}]
-User: "kya hua raat mein?" → [{"intent": "get_morning_briefing", "params": {}, "confidence": 0.9}]
-User: "any updates?" → [{"intent": "get_morning_briefing", "params": {}, "confidence": 0.85}]
-User: "morning briefing" → [{"intent": "get_morning_briefing", "params": {}, "confidence": 0.95}]
 
 MULTI-INTENT & CLARIFICATION EXAMPLES:
 User: "create a biolink and add one ebook product on mu bio with all my socila link ok" → [{"intent": "add_asset", "params": {"type": "ebook", "title": "Ebook Product"}, "confidence": 0.9}, {"intent": "create_biolink", "params": {}, "confidence": 0.9}]
@@ -408,7 +396,7 @@ async function formatResponse(message, actionResults, hasChat, context, clarific
             ? `\n\nI also just executed these actions for the creator:\n${actionResults.map(r => `- ${formatIntentTitle(r.intent)}: ${r.success ? 'Success' : 'Failed'} — ${r.message}`).join('\n')}`
             : '';
 
-        const chatPrompt = `You are Sotix AI — the creator's AI employee, not a chatbot.
+        const chatPrompt = `You are sotixAI — the creator's AI employee, not a chatbot.
 Talk like a chill coworker, not a corporate assistant. Use emojis naturally. Be SHORT.
 ${contextInfo}
 
@@ -420,7 +408,7 @@ HARD RULES:
 - If they ask "how" to do something → give the exact command they should type
 - IMPORTANT: Provide 2 or 3 short follow-up suggestion prompts for the user to execute next. Put them at the very end of your response, strictly in this format: <SUGGESTIONS>["prompt 1", "prompt 2"]</SUGGESTIONS>
 
-Your capabilities: comment auto-reply, DM auto-reply, asset management, brand deal finding, persona analysis, content targeting, time/comment limits, custom AI instructions, morning briefings, biolinks, cross-platform automation.
+Your capabilities: comment auto-reply, DM auto-reply, asset management, brand deal finding, persona analysis, content targeting, time/comment limits, custom AI instructions, biolinks, cross-platform automation.
 
 Creator says: "${message}"
 
@@ -511,7 +499,6 @@ function formatIntentTitle(intent) {
         'list_custom_instructions': 'Custom Rules',
         'remove_custom_instruction': 'Custom Rule Removed',
         'clear_custom_instructions': 'Custom Rules Cleared',
-        'get_morning_briefing': 'Morning Briefing',
         'request_clarification': 'Clarification',
         'general_chat': 'Chat'
     };
@@ -695,7 +682,7 @@ User Context:
 - Recent messages from user: ${JSON.stringify(recentMessages)}
 `;
 
-        const prompt = `You are the AI brain of Sotix — a social media automation platform.
+        const prompt = `You are the AI brain of sotixAI — a social media automation platform.
 Your job is to generate exactly ${neededCount} highly-used, action-oriented suggestions/prompts for the creator, specifically focusing on Instagram automation and BioLink product setup.
 The prompts should represent actual platform capabilities, but MUST be different every time.
 
@@ -718,7 +705,7 @@ HARD RULES:
 3. Keep the 'text' short (max 7-10 words) and extremely action-oriented for Instagram/BioLink.
 4. CRITICAL: Do NOT suggest setting up or enabling any automation that is ALREADY enabled/running in the CURRENT USER STATE.
 5. CRITICAL: The suggestions must be highly diverse and NOT overlap with the recent messages from the user: ${JSON.stringify(recentMessages)}. Do NOT suggest things the user just did.
-6. EXCLUDE: Do NOT generate morning briefings, status checks, activity logs, greetings, or general check-ups. Only generate setup or management tasks.
+6. EXCLUDE: Do NOT generate status checks, activity logs, greetings, or general check-ups. Only generate setup or management tasks.
 7. Make them sound like a real creator talking: casual, modern, Hinglish/slang-friendly.
 8. Return ONLY the raw JSON array. No markdown, no explanation.`;
 

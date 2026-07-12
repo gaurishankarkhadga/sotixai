@@ -62,7 +62,7 @@ const EarlyAccess = () => {
                     <div className="ea-banner-content">
                         <img
                             src="/assets/logo-icon-transparent.png"
-                            alt="Sotix Logo"
+                            alt="sotixAI Logo"
                             className="ea-banner-logo"
                         />
                         <h1 className="ea-banner-title">Join the Waitlist</h1>

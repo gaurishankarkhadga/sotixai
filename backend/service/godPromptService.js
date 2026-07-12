@@ -17,7 +17,7 @@ async function processGodPrompt(userId, promptText) {
         console.log(`[GodPrompt] Processing master prompt for user ${userId}...`);
 
         const systemPrompt = `
-You are the Sotix Setup Engine. A creator has provided a single paragraph describing their entire business model, tone, and product.
+You are the sotixAI Setup Engine. A creator has provided a single paragraph describing their entire business model, tone, and product.
 Your job is to extract this unstructured text into a highly structured JSON configuration.
 
 CREATOR'S PROMPT:

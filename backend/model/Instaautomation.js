@@ -46,7 +46,7 @@ const dmAutoReplySettingSchema = new mongoose.Schema({
         createdAt: { type: Date, default: Date.now }
     }],
     confidenceThreshold: { type: Number, default: 0.7, min: 0.1, max: 1.0 }, // Min confidence to send a reply
-    lastBriefingAt: { type: Date, default: null }, // Track when morning briefing was last shown
+
     // ==================== CREATOR GLOBAL DEAL RULE MATRIX (15-POINT) ====================
     negotiationPreferences: {
         acceptedDeliverables: { type: [String], default: [] },

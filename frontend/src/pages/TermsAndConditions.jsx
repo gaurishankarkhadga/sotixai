@@ -18,16 +18,16 @@ const TermsAndConditions = () => {
                 <section>
                     <h2>1. Acceptance of Terms</h2>
                     <p>
-                        By accessing and using Sotix ("Service," "Platform"), you confirm that you have read, understood, and agree to be bound by these Terms and Conditions. If you do not agree, please discontinue use immediately.
+                        By accessing and using sotixAI ("Service," "Platform"), you confirm that you have read, understood, and agree to be bound by these Terms and Conditions. If you do not agree, please discontinue use immediately.
                     </p>
                     <p>
-                        Sotix heavily relies on third-party API Services. By utilizing our YouTube integration features, you are explicitly agreeing to be bound by the <a href="https://www.youtube.com/t/terms" target="_blank" rel="noopener noreferrer">YouTube Terms of Service</a> and the <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Google Privacy Policy</a>. Similarly, by utilizing Instagram features, you agree to the Meta Platform Terms.
+                        sotixAI heavily relies on third-party API Services. By utilizing our YouTube integration features, you are explicitly agreeing to be bound by the <a href="https://www.youtube.com/t/terms" target="_blank" rel="noopener noreferrer">YouTube Terms of Service</a> and the <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Google Privacy Policy</a>. Similarly, by utilizing Instagram features, you agree to the Meta Platform Terms.
                     </p>
                 </section>
 
                 <section>
                     <h2>2. Service Description</h2>
-                    <p>Sotix provides an AI-powered automation suite designed for digital creators, including but not limited to:</p>
+                    <p>sotixAI provides an AI-powered automation suite designed for digital creators, including but not limited to:</p>
                     <ul>
                         <li>Instagram and YouTube content scheduling</li>
                         <li>Automated comment reply generation and moderation</li>
@@ -39,7 +39,7 @@ const TermsAndConditions = () => {
 
                 <section>
                     <h2>3. Eligibility and Account Responsibilities</h2>
-                    <p>To use Sotix, you must:</p>
+                    <p>To use sotixAI, you must:</p>
                     <ul>
                         <li>Be at least 13 years old.</li>
                         <li>Own, or have explicit legal authorization to manage, the connected Instagram and/or YouTube accounts.</li>
@@ -67,21 +67,21 @@ const TermsAndConditions = () => {
 
                 <section>
                     <h2>5. Acceptable Use Policy</h2>
-                    <p>You agree to use Sotix legally and ethically. You strictly may <strong>NOT</strong>:</p>
+                    <p>You agree to use sotixAI legally and ethically. You strictly may <strong>NOT</strong>:</p>
                     <ul>
                         <li>Use the automation tools to spam, harass, defraud, or abuse other users on <i>any</i> platform.</li>
                         <li>Post illegal, highly offensive, or hateful content.</li>
                         <li>Use our service to artificially inflate engagement metrics (e.g., buying fake likes/subscribers via our endpoints).</li>
-                        <li>Attempt to reverse-engineer, hack, or disrupt Sotix's infrastructure.</li>
+                        <li>Attempt to reverse-engineer, hack, or disrupt sotixAI's infrastructure.</li>
                     </ul>
-                    <p><strong>Immediate Termination:</strong> Violating this Acceptable Use Policy will result in an immediate, unappealable ban from Sotix.</p>
+                    <p><strong>Immediate Termination:</strong> Violating this Acceptable Use Policy will result in an immediate, unappealable ban from sotixAI.</p>
                 </section>
 
                 <section>
                     <h2>6. Disclaimers and Assumption of Risk</h2>
-                    <p>Sotix provides powerful automation tools, but you use them entirely at your own risk.</p>
+                    <p>sotixAI provides powerful automation tools, but you use them entirely at your own risk.</p>
                     <ul>
-                        <li><strong>Platform Bans:</strong> We formulate our API calls to be compliant, but we <strong>do not guarantee</strong> your account will not face restrictions. Sotix is not liable if Instagram or YouTube restricts, shadow-bans, or terminates your account due to your use of automation.</li>
+                        <li><strong>Platform Bans:</strong> We formulate our API calls to be compliant, but we <strong>do not guarantee</strong> your account will not face restrictions. sotixAI is not liable if Instagram or YouTube restricts, shadow-bans, or terminates your account due to your use of automation.</li>
                         <li><strong>AI Generation:</strong> AI generated replies or content (via Gemini) may occasionally produce inaccurate or undesirable outputs. You are responsible for reviewing automated actions.</li>
                         <li><strong>Service Availability:</strong> The Service is provided "AS IS." We do not guarantee 100% uptime due to reliance on third-party APIs.</li>
                     </ul>
@@ -91,7 +91,7 @@ const TermsAndConditions = () => {
                     <h2>7. Limitation of Liability</h2>
                     <p>To the maximum extent permitted by applicable law:</p>
                     <ul>
-                        <li>Sotix (and its creators) shall not be liable for any indirect, incidental, special, consequential, or punitive damages resulting from your use of the Service.</li>
+                        <li>sotixAI (and its creators) shall not be liable for any indirect, incidental, special, consequential, or punitive damages resulting from your use of the Service.</li>
                         <li>We are entirely free from liability regarding data loss, revenue loss, or reputational damage stemming from a social media platform banning your account.</li>
                         <li>Our total cumulative liability to you for any claims is strictly limited to the amount you paid us (if any) in the past 12 months.</li>
                     </ul>
@@ -100,7 +100,7 @@ const TermsAndConditions = () => {
                 <section>
                     <h2>8. Indemnification</h2>
                     <p>
-                        You agree to defend, indemnify, and hold harmless Sotix and its affiliates from any claims, damages, obligations, losses, liabilities, costs, or debt arising from:
+                        You agree to defend, indemnify, and hold harmless sotixAI and its affiliates from any claims, damages, obligations, losses, liabilities, costs, or debt arising from:
                     </p>
                     <ul>
                         <li>Your violation of these Terms or any third-party platform's terms.</li>
@@ -133,13 +133,13 @@ const TermsAndConditions = () => {
                 <div className="acceptance-notice">
                     <p>
                         <strong>
-                            By registering an account and utilizing Sotix's API connections, you legally bind yourself to these Terms and Conditions.
+                            By registering an account and utilizing sotixAI's API connections, you legally bind yourself to these Terms and Conditions.
                         </strong>
                     </p>
                 </div>
 
                 <footer className="policy-footer">
-                    <p><strong>Sotix</strong></p>
+                    <p><strong>sotixAI</strong></p>
                     <p>Empowering Creators with AI automation.</p>
                 </footer>
             </div>
