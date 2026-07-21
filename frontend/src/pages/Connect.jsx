@@ -156,43 +156,30 @@ function Connect() {
                     {/* Header Text Group */}
                     <div className="connect-header-group">
                         <div className="info-badge scroll-reveal stagger-4">
-                            <Zap size={16} className="badge-icon" />
-                            <span>Next-Gen Automation</span>
+                            <ShieldCheck size={16} className="badge-icon" />
+                            <span>Secure Authentication</span>
                         </div>
                         <h1 className="info-title scroll-reveal stagger-5">
-                            Scale Your Audience <span className="neon-text-gradient">on Autopilot.</span>
+                            Connect your accounts to <span className="neon-text-gradient">get started.</span>
                         </h1>
                         <p className="info-description scroll-reveal stagger-6">
-                            The easiest way to automate your Instagram and YouTube. Connect your accounts to set up auto-replies, track analytics, and manage your messages automatically.
+                            Securely link your Instagram and YouTube profiles to unlock intelligent automation. We strictly use official APIs to ensure your data is safe and your accounts remain fully compliant.
                         </p>
                     </div>
 
-                    {/* Features List Group */}
-                    <div className="connect-features-group">
-                        <div className="feature-list">
-                            <div className="feature-item scroll-reveal stagger-7">
-                                <div className="feature-icon-wrapper analytics-glow"><BarChart2 size={20} /></div>
-                                <div className="feature-text">
-                                    <h3>Comment Auto-Reply</h3>
-                                    <p>Instantly reply to comments and send automated links to your viewers.</p>
-                                </div>
-                            </div>
-                            <div className="feature-item scroll-reveal stagger-8">
-                                <div className="feature-icon-wrapper ai-glow"><Cpu size={20} /></div>
-                                <div className="feature-text">
-                                    <h3>DM Automation</h3>
-                                    <p>Engage with your audience and handle leads directly in their direct messages.</p>
-                                </div>
-                            </div>
-                            <div className="feature-item scroll-reveal stagger-9">
-                                <div className="feature-icon-wrapper security-glow"><Lock size={20} /></div>
-                                <div className="feature-text">
-                                    <h3>Growth Analytics</h3>
-                                    <p>Track conversion rates, message counts, and overall channel growth.</p>
-                                </div>
-                            </div>
+                    <div className="trust-indicators scroll-reveal stagger-7">
+                        <div className="trust-item">
+                            <CheckCircle2 size={16} className="trust-icon" /> <span>100% Policy Compliant</span>
+                        </div>
+                        <div className="trust-item">
+                            <CheckCircle2 size={16} className="trust-icon" /> <span>No Passwords Required</span>
+                        </div>
+                        <div className="trust-item">
+                            <CheckCircle2 size={16} className="trust-icon" /> <span>Enterprise-Grade Security</span>
                         </div>
                     </div>
+
+
                 </div>
 
                 {/* Right Side: Connection Card */}
