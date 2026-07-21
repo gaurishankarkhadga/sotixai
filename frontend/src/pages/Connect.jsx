@@ -160,7 +160,7 @@ function Connect() {
                             <span>Secure Authentication</span>
                         </div>
                         <h1 className="info-title scroll-reveal stagger-5">
-                            Connect your accounts to <span className="neon-text-gradient">get started.</span>
+                            Put your social platforms on <span className="neon-text-gradient">autopilot with AI.</span>
                         </h1>
                         <p className="info-description scroll-reveal stagger-6">
                             Securely link your Instagram and YouTube profiles to unlock intelligent automation. We strictly use official APIs to ensure your data is safe and your accounts remain fully compliant.
